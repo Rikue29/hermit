@@ -45,5 +45,11 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>This app needs access to the photo library to select food images for detection.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs access to the camera to take pictures of food items for detection.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>This app does not require microphone access, but it may be requested by the camera.</string>
 </dict>
 </plist>

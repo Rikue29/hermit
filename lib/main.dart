@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:hermit/screens/food_scanner_screen.dart'; // Adjust path if needed
+import 'screens/food_scanner_screen.dart'; // Corrected path
 import 'screens/main_layout.dart';
 import 'services/env_service.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +25,6 @@ class MyApp extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
         ), // Example theme color
-        useMaterial3: true,
       ),
       // Set FoodScannerScreen as the home screen
       home: const MainLayout(),

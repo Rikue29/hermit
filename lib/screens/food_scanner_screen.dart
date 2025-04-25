@@ -1,8 +1,8 @@
 import 'dart:io'; // Required for File type
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-// Adjust the import path based on your project structure
-import 'package:hermit/models/food_detection.dart';
+// Correct the import path for food_detection.dart
+import '../models/food_detection.dart';
 
 /// A screen that allows users to pick an image (camera/gallery)
 /// and uses the FoodDetector to identify items via Roboflow API.
@@ -120,9 +120,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
               // _errorMessage = "No food items detected.";
             } else {
               // Set the detection text for editing
-              _detectionController.text = results
-                  .map((e) => e.className)
-                  .join(', ');
+              _detectionController.text =
+                  results.map((e) => e.className).join(', ');
             }
           });
         } catch (e) {
@@ -216,10 +215,9 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                   ),
                   const SizedBox(height: 30),
                   ElevatedButton(
-                    onPressed:
-                        _isLoading
-                            ? null
-                            : () => _pickAndDetectImage(ImageSource.gallery),
+                    onPressed: _isLoading
+                        ? null
+                        : () => _pickAndDetectImage(ImageSource.gallery),
                     style: ElevatedButton.styleFrom(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 32,
@@ -266,18 +264,17 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
             ..._recentScans.map(
               (scan) => Card(
                 child: ListTile(
-                  leading:
-                      scan['imagePath'] != null
-                          ? Image.file(
-                            File(scan['imagePath']),
-                            width: 50,
-                            height: 50,
-                            fit: BoxFit.cover,
-                          )
-                          : const CircleAvatar(
-                            backgroundColor: Colors.red,
-                            child: Icon(Icons.food_bank, color: Colors.white),
-                          ),
+                  leading: scan['imagePath'] != null
+                      ? Image.file(
+                          File(scan['imagePath']),
+                          width: 50,
+                          height: 50,
+                          fit: BoxFit.cover,
+                        )
+                      : const CircleAvatar(
+                          backgroundColor: Colors.red,
+                          child: Icon(Icons.food_bank, color: Colors.white),
+                        ),
                   title: Text(scan['title'] ?? 'Unknown'),
                   subtitle: Text(scan['subtitle'] ?? ''),
                   trailing: Text(scan['trailing'] ?? ''),

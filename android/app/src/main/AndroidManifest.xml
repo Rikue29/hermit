@@ -1,4 +1,12 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Required to access the camera -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <!-- Permissions for accessing storage (usually handled by image_picker, but good practice) -->
+    <!-- Read permission is generally granted implicitly for own app's media selection -->
+    <!-- <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" android:maxSdkVersion="32" /> -->
+    <!-- Write permission often not needed for just picking -->
+    <!-- <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" /> -->
+
     <application
         android:label="hermit"
         android:name="${applicationName}"

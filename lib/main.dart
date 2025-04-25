@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:hermit/screens/food_scanner_screen.dart'; // Adjust path if needed
 import 'screens/main_layout.dart';
 import 'services/env_service.dart';
+
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,7 +16,8 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Food Waste Reducer',
+      // Updated title
+      title: 'Hermit Food Scanner',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         useMaterial3: true,
@@ -22,8 +25,10 @@ class MyApp extends StatelessWidget {
         bottomNavigationBarTheme: BottomNavigationBarTheme.of(context).copyWith(
           backgroundColor: Colors.white,
           elevation: 0,
-        ),
+        ), // Example theme color
+        useMaterial3: true,
       ),
+      // Set FoodScannerScreen as the home screen
       home: const MainLayout(),
     );
   }

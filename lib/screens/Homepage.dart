@@ -1,7 +1,7 @@
-
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'scan_screen.dart';
 
 enum TaskType {
   recipe,
@@ -628,7 +628,16 @@ class _MyHomePageState extends State<Homepage> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: (index) {
+          if (index == 1) { // Scan tab
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const ScanScreen()),
+            );
+          } else {
+            setState(() => _currentIndex = index);
+          }
+        },
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home),

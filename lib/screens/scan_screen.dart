@@ -62,6 +62,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
   bool _isInitialized = false;
   String? _initError;
   Map<String, bool> _sectionLoading = {};
+  int _currentIndex = 1;
 
   @override
   void initState() {
@@ -735,6 +736,19 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
     }
 
     return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          'Scan Food',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2D3142),
+          ),
+        ),
+        backgroundColor: Colors.white,
+        elevation: 0,
+        automaticallyImplyLeading: false,
+      ),
       body: Stack(
         children: [
           Column(
@@ -811,6 +825,40 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
               ),
             ),
         ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (index) {
+          if (index != _currentIndex) {
+            if (index == 0) {
+              // Navigate to Home
+              Navigator.pop(context);
+            } else if (index == 2) {
+              // Navigate to Profile (you might want to implement this)
+              // For now, just stay on current page
+              setState(() => _currentIndex = index);
+            }
+          }
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.camera_alt),
+            label: 'Scan',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        selectedItemColor: Colors.green,
+        unselectedItemColor: Colors.grey,
+        showSelectedLabels: true,
+        showUnselectedLabels: true,
+        type: BottomNavigationBarType.fixed,
       ),
     );
   }

@@ -32,12 +32,10 @@ class Task {
     this.isCompleted = false,
   });
 
-  // Convert color to hex string
   String _colorToHex(Color color) {
     return '#${color.value.toRadixString(16).padLeft(8, '0')}';
   }
 
-  // Convert hex string to color
   static Color _hexToColor(String hex) {
     return Color(int.parse(hex.substring(1), radix: 16));
   }
@@ -126,6 +124,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _initializePrefs();
+    _loadState();
   }
 
   Future<void> _initializePrefs() async {
@@ -146,6 +145,24 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     final tasksJson = _tasks.map((task) => jsonEncode(task.toJson())).toList();
     await _prefs.setStringList('tasks', tasksJson);
     await _prefs.setInt('sharedItemsCount', _sharedItemsCount);
+  }
+
+  Future<void> _loadState() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _totalImpactScore = prefs.getDouble('totalImpactScore') ?? 0.0;
+      _moneySaved = prefs.getDouble('moneySaved') ?? 0.0;
+      _kgSaved = prefs.getDouble('kgSaved') ?? 0.0;
+      _itemsShared = prefs.getInt('itemsShared') ?? 0;
+    });
+  }
+
+  Future<void> _saveState() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble('totalImpactScore', _totalImpactScore);
+    await prefs.setDouble('moneySaved', _moneySaved);
+    await prefs.setDouble('kgSaved', _kgSaved);
+    await prefs.setInt('itemsShared', _itemsShared);
   }
 
   @override
@@ -243,22 +260,19 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   // Update impact metrics when a task is completed
   void _updateImpactMetrics(Task task) {
     setState(() {
-      // Simulate different impact based on task type
       if (task.type == TaskType.recipe) {
-        _totalImpactScore +=
-            15.0; // Recipe tasks have higher environmental impact
-        _moneySaved += 8.0; // Average money saved per recipe
-        _kgSaved += 0.8; // Average food waste prevented
+        _totalImpactScore += 15.0;
+        _moneySaved += 8.0;
+        _kgSaved += 0.8;
       } else {
-        _totalImpactScore += 10.0; // Disposal tasks
-        _kgSaved += 0.5; // Average waste properly disposed
+        _totalImpactScore += 10.0;
+        _kgSaved += 0.5;
       }
-
-      // Increment shared items counter (simulated)
+      
       if (_totalImpactScore % 30 == 0) {
-        // Every few tasks completed
         _itemsShared++;
       }
+      _saveState(); // Save state after each update
     });
   }
 
@@ -918,7 +932,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                 value: '${_kgSaved.toStringAsFixed(1)} kg',
                               ),
                               _ImpactMetric(
-                                title: 'Shared Items',
+                                title: 'Shared Foods',
                                 value: _itemsShared.toString(),
                               ),
                             ],

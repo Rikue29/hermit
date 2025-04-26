@@ -100,7 +100,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   final ImagePicker _picker = ImagePicker();
   int _sharedItemsCount = 0;
 
-  // Add impact tracking variables
   double _totalImpactScore = 0.0;
   double _moneySaved = 0.0;
   double _kgSaved = 0.0;
@@ -110,10 +109,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     Alert(
       title: 'Overdue Tasks Alert',
       description: '2 tasks pending for more than 2 days',
-    ),
-    Alert(
-      title: 'Food Expiring Soon',
-      description: 'Check your inventory for items expiring this week',
     ),
   ];
 
@@ -188,14 +183,12 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    // Dispose all animation controllers
     for (var controller in _fadeControllers.values) {
       controller.dispose();
     }
     super.dispose();
   }
 
-  // Create a fade controller for a specific index
   AnimationController _getFadeController(int index) {
     if (!_fadeControllers.containsKey(index)) {
       _fadeControllers[index] = AnimationController(
@@ -260,25 +253,18 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     _saveTasks();
   }
 
-  // Add method to calculate progress
   double _calculateProgress() {
     if (_tasks.isEmpty) return 0.0;
     int completedTasks = _tasks.where((task) => task.isCompleted).length;
     return completedTasks / _tasks.length;
   }
 
-  // Calculate environmental impact (dummy calculations for simulation)
   double _calculateEnvironmentalImpact() {
-    // For simulation: max impact score is 100
-    // Each completed task contributes based on its type
     double maxScore = 100.0;
     double currentScore = _totalImpactScore;
-
-    // Cap the score at 100%
     return (currentScore / maxScore).clamp(0.0, 1.0);
   }
 
-  // Update impact metrics when a task is completed
   void _updateImpactMetrics(Task task) {
     setState(() {
       if (task.type == TaskType.recipe) {
@@ -289,11 +275,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         _totalImpactScore += 10.0;
         _kgSaved += 0.5;
       }
-      
+
       if (_totalImpactScore % 30 == 0) {
         _itemsShared++;
       }
-      _saveState(); // Save state after each update
+      _saveState();
     });
   }
 
@@ -303,24 +289,16 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
       setState(() {
         _tasks[index].isCompleted = true;
         _completedTasks[index] = true;
-        _updateImpactMetrics(
-            _tasks[index]); // Update impact when task completed
+        _updateImpactMetrics(_tasks[index]);
       });
 
-      // Wait longer for the checkmark animation
       await Future.delayed(const Duration(milliseconds: 800));
 
-      // Start fade out animation
       final fadeController = _getFadeController(index);
-      await fadeController.forward();
-
-      // Then remove the task and clean up
       setState(() {
         _tasks.removeAt(index);
         _completedTasks.remove(index);
       });
-
-      // Clean up the controller
       fadeController.dispose();
       _fadeControllers.remove(index);
 
@@ -806,14 +784,12 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         child: IndexedStack(
           index: _currentIndex,
           children: [
-            // Home Page
             SingleChildScrollView(
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // App Header
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -858,7 +834,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 24),
 
-                    // Impact Card
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
@@ -963,7 +938,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 24),
 
-                    // Alert Section
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1054,7 +1028,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                     ),
                     const SizedBox(height: 24),
 
-                    // Waste Reduction Tasks Section
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
@@ -1224,7 +1197,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            // Scan Page
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -1290,7 +1262,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                 ],
               ),
             ),
-            // Profile Page
             const Center(
               child: Text('Profile Page'),
             ),
@@ -1301,7 +1272,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         currentIndex: _currentIndex,
         onTap: (index) {
           if (index == 1) {
-            // Scan tab
             Navigator.push(
               context,
               MaterialPageRoute(
@@ -1312,7 +1282,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
               ),
             );
           } else if (index == 2) {
-            // Community tab
             Navigator.push(
               context,
               MaterialPageRoute(

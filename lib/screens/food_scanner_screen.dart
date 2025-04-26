@@ -92,24 +92,21 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         _recentScans = scans;
       });
 
-      if (_recentScans.isEmpty) {
-        // If no recent scans are found, load dummy scans
-        _loadDummyScans();
-      }
+      // No longer load dummy scans when empty
+      // Just keep the empty state
     } catch (e) {
       print('Error loading recent scans: $e');
       setState(() {
         _errorMessage = e.toString();
         _recentScans = [];
       });
-      // Load dummy scans as fallback
-      _loadDummyScans();
+      // No longer use dummy scans as fallback
     }
   }
 
-  // Load dummy scans for initial display
+  // Load dummy scans for UI preview only (not saved to Firebase)
   void _loadDummyScans() async {
-    print('Loading dummy scans');
+    print('Loading dummy scans for UI preview only');
     final dummyScans = [
       RecentScan(
         foodItem: 'Apples',
@@ -133,14 +130,14 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       ),
     ];
 
-    // Add to Firestore
-    await _firestoreService.addScans(dummyScans);
+    // No longer save dummy data to Firestore
+    // Only update the UI state
 
     setState(() {
       _recentScans = dummyScans;
     });
 
-    print('Dummy scans loaded and saved to Firestore');
+    print('Dummy scans loaded for UI preview only');
   }
 
   // === Core Scanning Functionality ===
@@ -3037,4 +3034,3 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 }
-

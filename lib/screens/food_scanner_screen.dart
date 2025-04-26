@@ -15,7 +15,14 @@ import '../models/recent_scan.dart';
 /// A screen that allows users to pick an image (camera/gallery)
 /// and uses the FoodDetector to identify items via Roboflow API.
 class FoodScannerScreen extends StatefulWidget {
-  const FoodScannerScreen({super.key});
+  final Function(Recipe recipe)? onAddRecipeTask;
+  final Function(WasteDisposalSuggestion suggestion)? onAddWasteSuggestionTask;
+
+  const FoodScannerScreen({
+    super.key,
+    this.onAddRecipeTask,
+    this.onAddWasteSuggestionTask,
+  });
 
   @override
   State<FoodScannerScreen> createState() => _FoodScannerScreenState();
@@ -874,6 +881,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(height: 16),
+                                      // Add to Tasks button
+                                      Center(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            if (widget.onAddWasteSuggestionTask != null) {
+                                              widget.onAddWasteSuggestionTask!(suggestion);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(Icons.add_task),
+                                          label: const Text('Add to Tasks'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(30),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   ),
                                 );
@@ -1634,14 +1672,14 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                           },
                           icon: const Icon(Icons.eco, size: 20),
                           label: const Text(
-                            'Waste\nManagement',
+                            'Waste\n\tManagement',
                             textAlign: TextAlign.center,
                           ),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF4A5F4A),
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(
-                              vertical: 12,
+                              vertical: 16,
                               horizontal: 20,
                             ),
                             shape: RoundedRectangleBorder(
@@ -1674,76 +1712,82 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     if (_selectedItems.isEmpty) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 4,
-            offset: const Offset(0, -2),
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
-                  '${_selectedItems.length} selected',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w600,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                '${_selectedItems.length} selected',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                ),
+              ),
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
+                    },
+                    icon: const Icon(Icons.restaurant_menu, size: 20),
+                    label: const Text('Suggest\nRecipes'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3E6B3D),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
-              ),
-              Flexible(
-                flex: 2,
-                child: Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  alignment: WrapAlignment.end,
-                  children: [
-                    SizedBox(
-                      height: 36,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
-                        },
-                        icon: const Icon(Icons.restaurant_menu, size: 16),
-                        label: const Text('Generate Recipes'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF3E6B3D),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                          textStyle: const TextStyle(fontSize: 13),
-                        ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      _showBatchWasteManagementDialog(_selectedItems.toList());
+                    },
+                    icon: const Icon(Icons.eco, size: 20),
+                    label: const Text('Waste\nManagement'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF4A5F4A),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      elevation: 0,
+                      textStyle: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
-                    SizedBox(
-                      height: 36,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          _showBatchWasteManagementDialog(_selectedItems.toList());
-                        },
-                        icon: const Icon(Icons.eco, size: 16),
-                        label: const Text('Waste Management'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A5F4A),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
-                          textStyle: const TextStyle(fontSize: 13),
-                        ),
-                      ),
-                    ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -1983,6 +2027,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   ),
                                                 );
                                               },
+                                            ),
+                                            const SizedBox(height: 16),
+                                            // Add to Tasks button
+                                            Center(
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                  if (widget.onAddRecipeTask != null) {
+                                                    widget.onAddRecipeTask!(recipe);
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Added "${recipe.name}" to tasks'),
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.add_task),
+                                                label: const Text('Add to Tasks'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(30),
+                                                  ),
+                                                ),
+                                              ),
                                             ),
                                           ],
                                         ),
@@ -2307,6 +2382,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               );
                                             }).toList(),
                                           ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Add to Tasks button
+                                      Center(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            if (widget.onAddWasteSuggestionTask != null) {
+                                              widget.onAddWasteSuggestionTask!(suggestion);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(Icons.add_task),
+                                          label: const Text('Add to Tasks'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(30),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],

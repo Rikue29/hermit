@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:food_waste_reducer/services/recipe_service.dart';
+import 'package:food_waste_reducer/services/waste_management_service.dart';
 
 enum TaskType { recipe, disposal }
 
@@ -135,6 +137,36 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
               ? const Color(0xFF2563EB)
               : const Color(0xFF15803D),
           type: type,
+        ),
+      );
+    });
+  }
+
+  void _addTaskFromRecipe(Recipe recipe) {
+    setState(() {
+      _tasks.add(
+        Task(
+          title: recipe.name,
+          timing: 'Today',
+          tag: 'Recipe',
+          tagColor: const Color(0xFFE3EAFF),
+          tagTextColor: const Color(0xFF2563EB),
+          type: TaskType.recipe,
+        ),
+      );
+    });
+  }
+
+  void _addTaskFromWasteSuggestion(WasteDisposalSuggestion suggestion) {
+    setState(() {
+      _tasks.add(
+        Task(
+          title: suggestion.suggestion,
+          timing: 'Today',
+          tag: suggestion.category,
+          tagColor: const Color(0xFFDCFCE7),
+          tagTextColor: const Color(0xFF15803D),
+          type: TaskType.disposal,
         ),
       );
     });
@@ -809,7 +841,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
             Navigator.push(
               context,
               MaterialPageRoute(
-                  builder: (context) => const FoodScannerScreen()),
+                builder: (context) => FoodScannerScreen(
+                  onAddRecipeTask: _addTaskFromRecipe,
+                  onAddWasteSuggestionTask: _addTaskFromWasteSuggestion,
+                ),
+              ),
             );
           } else {
             setState(() => _currentIndex = index);

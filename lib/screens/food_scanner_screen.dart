@@ -9,7 +9,7 @@ import '../services/env_service.dart';
 import '../services/waste_management_service.dart';
 import '../services/recipe_service.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/firestore_service.dart'; // Add Firestore service
 import '../models/recent_scan.dart';
 import 'package:flutter/rendering.dart';
 
@@ -35,7 +35,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   final ImagePicker _picker = ImagePicker();
   late FoodAnalysisService _foodAnalysisService;
   late FoodCarbonService _foodCarbonService;
-  late SharedPreferences _prefs;
+  late FirestoreService
+      _firestoreService; // Replace SharedPreferences with FirestoreService
 
   // State variables
   List<RecentScan> _recentScans = []; // Holds recent scan results
@@ -56,6 +57,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   @override
   void initState() {
     super.initState();
+    _firestoreService = FirestoreService(); // Initialize Firestore service
     _initializeServices();
   }
 
@@ -75,7 +77,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         apiKey: EnvService.geminiApiKey,
       );
       _foodCarbonService = FoodCarbonService(apiKey: EnvService.geminiApiKey);
-      _prefs = await SharedPreferences.getInstance();
       await _loadRecentScans();
     } catch (e) {
       setState(() {
@@ -86,35 +87,20 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
   Future<void> _loadRecentScans() async {
     try {
-      final scansJson = _prefs.getStringList('recent_scans') ?? [];
-      print('Loaded scans from SharedPreferences: ' + scansJson.toString());
-
-      if (scansJson.isEmpty) {
-        // If no recent scans are found, load dummy scans
-        _loadDummyScans();
-        return;
-      }
-
-      // Try to parse each scan, skipping any invalid ones
-      final validScans = <RecentScan>[];
-      for (final json in scansJson) {
-        try {
-          final scanMap = jsonDecode(json) as Map<String, dynamic>;
-          final scan = RecentScan.fromJson(scanMap);
-          validScans.add(scan);
-        } catch (e) {
-          print('Error parsing scan JSON: $e');
-          // Skip invalid scan data
-        }
-      }
+      final scans = await _firestoreService.getRecentScans();
 
       setState(() {
-        _recentScans = validScans
-          ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+        _recentScans = scans;
       });
+
+      if (_recentScans.isEmpty) {
+        // If no recent scans are found, load dummy scans
+        _loadDummyScans();
+      }
     } catch (e) {
       print('Error loading recent scans: $e');
       setState(() {
+        _errorMessage = e.toString();
         _recentScans = [];
       });
       // Load dummy scans as fallback
@@ -123,7 +109,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   // Load dummy scans for initial display
-  void _loadDummyScans() {
+  void _loadDummyScans() async {
     print('Loading dummy scans');
     final dummyScans = [
       RecentScan(
@@ -148,15 +134,14 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       ),
     ];
 
+    // Add to Firestore
+    await _firestoreService.addScans(dummyScans);
+
     setState(() {
       _recentScans = dummyScans;
     });
 
-    // Save these dummy scans to SharedPreferences for persistence
-    final scansJson =
-        _recentScans.map((scan) => jsonEncode(scan.toJson())).toList();
-    _prefs.setStringList('recent_scans', scansJson);
-    print('Dummy scans loaded and saved to preferences');
+    print('Dummy scans loaded and saved to Firestore');
   }
 
   // === Core Scanning Functionality ===
@@ -242,14 +227,12 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         newScans.add(newScan);
       }
 
+      // Add to Firestore
+      await _firestoreService.addScans(newScans);
+
       setState(() {
         // Add all new scans to the beginning of the list
         _recentScans.insertAll(0, newScans);
-
-        // Save to SharedPreferences
-        final scansJson =
-            _recentScans.map((scan) => jsonEncode(scan.toJson())).toList();
-        _prefs.setStringList('recent_scans', scansJson);
 
         _imageFile = null;
         _detections = [];
@@ -2010,38 +1993,39 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   // === Data Management Methods ===
-  Future<void> _saveRecentScan(String foodItem) async {
-    final newScan = RecentScan(
-      foodItem: foodItem,
-      timestamp: DateTime.now(),
-      imagePath: _imageFile?.path,
-    );
-
-    _recentScans.insert(0, newScan);
-    if (_recentScans.length > 20) {
-      _recentScans.removeLast();
-    }
-    await _prefs.setStringList(
-      'recent_scans',
-      _recentScans.map((scan) => jsonEncode(scan.toJson())).toList(),
-    );
-    setState(() {});
-  }
-
   void _clearRecentScans() async {
     try {
-      // Clear the list first
+      // Clear Firestore data
+      await _firestoreService.clearScans();
+
+      // Clear the list in UI
       setState(() {
         _recentScans.clear();
       });
 
-      // Then remove the key from SharedPreferences
-      await _prefs.remove('recent_scans');
       print("Successfully cleared recent scans");
     } catch (e) {
       print("Error clearing recent scans: $e");
       // Try to reload scans if clearing failed
       _loadRecentScans();
+    }
+  }
+
+  void _deleteRecentScan(int index) async {
+    try {
+      final scan = _recentScans[index];
+
+      // Delete from Firestore if the scan has an ID
+      if (scan.id != null) {
+        await _firestoreService.deleteScan(scan.id!);
+      }
+
+      // Update the UI
+      setState(() {
+        _recentScans.removeAt(index);
+      });
+    } catch (e) {
+      print("Error deleting recent scan: $e");
     }
   }
 
@@ -3052,21 +3036,5 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         },
       ),
     );
-  }
-
-  void _deleteRecentScan(int index) async {
-    try {
-      final scan = _recentScans[index];
-      setState(() {
-        _recentScans.removeAt(index);
-      });
-
-      // Save to SharedPreferences
-      final scansJson =
-          _recentScans.map((scan) => jsonEncode(scan.toJson())).toList();
-      await _prefs.setStringList('recent_scans', scansJson);
-    } catch (e) {
-      print("Error deleting recent scan: $e");
-    }
   }
 }

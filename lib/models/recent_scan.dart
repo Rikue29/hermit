@@ -1,9 +1,14 @@
 class RecentScan {
+  final String? id;
   final String foodItem;
   final DateTime timestamp;
   final String? imagePath;
 
-  RecentScan({required this.foodItem, required this.timestamp, this.imagePath});
+  RecentScan(
+      {this.id,
+      required this.foodItem,
+      required this.timestamp,
+      this.imagePath});
 
   Map<String, dynamic> toJson() => {
         'foodItem': foodItem,
@@ -11,8 +16,9 @@ class RecentScan {
         'imagePath': imagePath,
       };
 
-  factory RecentScan.fromJson(Map<String, dynamic> json) {
+  factory RecentScan.fromJson(Map<String, dynamic> json, {String? id}) {
     return RecentScan(
+      id: id,
       foodItem: json['foodItem'],
       timestamp: DateTime.parse(json['timestamp']),
       imagePath: json['imagePath'],

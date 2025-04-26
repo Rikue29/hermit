@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
+
 import 'screens/Homepage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'screens/food_scanner_screen.dart'; // Corrected path
 import 'services/env_service.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,4 +31,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

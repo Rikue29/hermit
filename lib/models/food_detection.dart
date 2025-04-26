@@ -91,13 +91,12 @@ class FoodDetector {
         // Parse predictions
         if (responseBody['predictions'] is List) {
           final List predictionsJson = responseBody['predictions'];
-          final List<DetectionResult> detections =
-              predictionsJson
-                  .map(
-                    (json) =>
-                        DetectionResult.fromJson(json as Map<String, dynamic>),
-                  )
-                  .toList();
+          final List<DetectionResult> detections = predictionsJson
+              .map(
+                (json) =>
+                    DetectionResult.fromJson(json as Map<String, dynamic>),
+              )
+              .toList();
           print("Detected items: $detections"); // For debugging
           return detections;
         } else {

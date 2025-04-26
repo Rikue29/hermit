@@ -1,7 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
-import 'scan_screen.dart';
 
 enum TaskType {
   recipe,
@@ -132,7 +132,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
           title: title,
           timing: 'Today',
           tag: type == TaskType.recipe ? 'Recipe' : 'Waste',
-          tagColor: type == TaskType.recipe 
+          tagColor: type == TaskType.recipe
               ? const Color(0xFFE3EAFF)
               : const Color(0xFFDCFCE7),
           tagTextColor: type == TaskType.recipe
@@ -193,7 +193,8 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -441,8 +442,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   children: [
                                     CircularProgressIndicator(
                                       value: 0.75,
-                                      backgroundColor: Colors.white.withOpacity(0.2),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                      backgroundColor:
+                                          Colors.white.withOpacity(0.2),
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
                                       strokeWidth: 4,
                                     ),
                                     Container(
@@ -608,7 +612,8 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _tasks.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 24),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 24),
                             itemBuilder: (context, index) {
                               final task = _tasks[index];
                               return FadeTransition(
@@ -725,7 +730,8 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE3EAFF),
                       foregroundColor: const Color(0xFF2563EB),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -748,7 +754,8 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFDCFCE7),
                       foregroundColor: const Color(0xFF15803D),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -775,10 +782,12 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1) { // Scan tab
+          if (index == 1) {
+            // Scan tab
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ScanScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const FoodScannerScreen()),
             );
           } else {
             setState(() => _currentIndex = index);

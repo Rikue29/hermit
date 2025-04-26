@@ -276,6 +276,15 @@ class _CommunityPageState extends State<CommunityPage>
     Color bgColor,
     IconData icon,
   ) {
+    // Example image URLs
+    final Map<String, String> imageUrls = {
+      'Vegetable Mix':
+          'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+      'Bakery Box':
+          'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
+    };
+    final String? imageUrl = imageUrls[title];
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -291,17 +300,31 @@ class _CommunityPageState extends State<CommunityPage>
       ),
       child: Row(
         children: [
-          Container(
-            width: 100,
-            height: 100,
-            decoration: BoxDecoration(
-              color: bgColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(12),
-                bottomLeft: Radius.circular(12),
-              ),
+          ClipRRect(
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(12),
+              bottomLeft: Radius.circular(12),
             ),
-            child: Icon(icon, color: Colors.green, size: 32),
+            child: imageUrl != null
+                ? Image.network(
+                    imageUrl,
+                    width: 100,
+                    height: 100,
+                    fit: BoxFit.cover,
+                    errorBuilder: (context, error, stackTrace) => Container(
+                      width: 100,
+                      height: 100,
+                      color: Colors.grey[200],
+                      child: const Icon(Icons.broken_image,
+                          color: Colors.grey, size: 32),
+                    ),
+                  )
+                : Container(
+                    width: 100,
+                    height: 100,
+                    color: bgColor,
+                    child: Icon(icon, color: Colors.green, size: 32),
+                  ),
           ),
           Expanded(
             child: Padding(

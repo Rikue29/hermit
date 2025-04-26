@@ -22,6 +22,8 @@ class SharedItemsService {
       status: 'Matched',
       requestCount: 3,
       iconData: 'kitchen',
+      photoUrl:
+          'https://images.unsplash.com/photo-1615589484252-c70def71bb4f?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     ),
     SharedItem(
       id: '2',
@@ -37,6 +39,8 @@ class SharedItemsService {
       status: 'Pending',
       requestCount: 2,
       iconData: 'eco',
+      photoUrl:
+          'https://plus.unsplash.com/premium_photo-1675798983878-604c09f6d154?w=1000&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MXx8dmVnZXRhYmxlc3xlbnwwfHwwfHx8MA%3D%3D',
     ),
     // Completed/Past shared items
     SharedItem(
@@ -53,6 +57,8 @@ class SharedItemsService {
       status: 'Completed',
       requestCount: 1,
       iconData: 'bakery_dining',
+      photoUrl:
+          'https://plus.unsplash.com/premium_photo-1673111979369-0222c7314b82?w=1000&auto=format&fit=crop&q=60&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxzZWFyY2h8NXx8YnJlYWR8ZW58MHx8MHx8fDA%3D',
     ),
   ];
 
@@ -141,6 +147,8 @@ class SharedItemsService {
       status: 'Pending',
       requestCount: 2,
       iconData: 'bakery_dining',
+      photoUrl:
+          'https://images.unsplash.com/photo-1629750413458-90c737a1c57b?q=80&w=1974&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     ),
     // Completed requests
     SharedItem(
@@ -157,6 +165,8 @@ class SharedItemsService {
       status: 'Completed',
       requestCount: 1,
       iconData: 'kitchen',
+      photoUrl:
+          'https://images.unsplash.com/photo-1692731754157-d73327dd6cdc?q=80&w=2070&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
     ),
   ];
 

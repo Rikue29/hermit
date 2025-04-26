@@ -179,21 +179,37 @@ class _MySharesTabState extends State<MySharesTab> {
                     ),
                     child: Row(
                       children: [
-                        Container(
-                          width: 80,
-                          height: 80,
-                          decoration: BoxDecoration(
-                            color: Colors.purple[50],
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(12),
-                              bottomLeft: Radius.circular(12),
-                            ),
+                        ClipRRect(
+                          borderRadius: const BorderRadius.only(
+                            topLeft: Radius.circular(12),
+                            bottomLeft: Radius.circular(12),
                           ),
-                          child: Icon(
-                            Icons.eco,
-                            color: Colors.purple[300],
-                            size: 32,
-                          ),
+                          child: item.photoUrl != null &&
+                                  item.photoUrl!.isNotEmpty
+                              ? Image.network(
+                                  item.photoUrl!,
+                                  width: 80,
+                                  height: 80,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) =>
+                                      Container(
+                                    width: 80,
+                                    height: 80,
+                                    color: Colors.grey[200],
+                                    child: const Icon(Icons.broken_image,
+                                        color: Colors.grey, size: 32),
+                                  ),
+                                )
+                              : Container(
+                                  width: 80,
+                                  height: 80,
+                                  color: Colors.purple[50],
+                                  child: Icon(
+                                    Icons.eco,
+                                    color: Colors.purple[300],
+                                    size: 32,
+                                  ),
+                                ),
                         ),
                         Expanded(
                           child: Padding(

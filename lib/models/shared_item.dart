@@ -12,6 +12,7 @@ class SharedItem {
   final String status; // Pending, Matched, Reserved
   final int requestCount;
   final String iconData; // Store the icon reference for the category
+  final String? photoUrl;
 
   SharedItem({
     required this.id,
@@ -27,6 +28,7 @@ class SharedItem {
     required this.status,
     required this.requestCount,
     required this.iconData,
+    this.photoUrl,
   });
 
   // Convert to JSON for backend
@@ -45,6 +47,7 @@ class SharedItem {
       'status': status,
       'requestCount': requestCount,
       'iconData': iconData,
+      'photoUrl': photoUrl,
     };
   }
 
@@ -64,6 +67,7 @@ class SharedItem {
       status: json['status'],
       requestCount: json['requestCount'],
       iconData: json['iconData'],
+      photoUrl: json['photoUrl'],
     );
   }
 }

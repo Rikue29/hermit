@@ -15,7 +15,14 @@ import '../models/recent_scan.dart';
 /// A screen that allows users to pick an image (camera/gallery)
 /// and uses the FoodDetector to identify items via Roboflow API.
 class FoodScannerScreen extends StatefulWidget {
-  const FoodScannerScreen({super.key});
+  final Function(Recipe recipe)? onAddRecipeTask;
+  final Function(WasteDisposalSuggestion suggestion)? onAddWasteSuggestionTask;
+
+  const FoodScannerScreen({
+    super.key,
+    this.onAddRecipeTask,
+    this.onAddWasteSuggestionTask,
+  });
 
   @override
   State<FoodScannerScreen> createState() => _FoodScannerScreenState();
@@ -872,6 +879,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               );
                                             }).toList(),
                                           ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Add to Tasks button
+                                      Center(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            if (widget.onAddWasteSuggestionTask != null) {
+                                              widget.onAddWasteSuggestionTask!(suggestion);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(Icons.add_task),
+                                          label: const Text('Add to Tasks'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 12,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(30),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -1984,6 +2022,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                 );
                                               },
                                             ),
+                                            const SizedBox(height: 16),
+                                            // Add to Tasks button
+                                            Center(
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                  if (widget.onAddRecipeTask != null) {
+                                                    widget.onAddRecipeTask!(recipe);
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Added "${recipe.name}" to tasks'),
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.add_task),
+                                                label: const Text('Add to Tasks'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(30),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ],
                                         ),
                                       ),
@@ -2307,6 +2376,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               );
                                             }).toList(),
                                           ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      // Add to Tasks button
+                                      Center(
+                                        child: ElevatedButton.icon(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            if (widget.onAddWasteSuggestionTask != null) {
+                                              widget.onAddWasteSuggestionTask!(suggestion);
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  backgroundColor: Colors.green,
+                                                ),
+                                              );
+                                            }
+                                          },
+                                          icon: const Icon(Icons.add_task),
+                                          label: const Text('Add to Tasks'),
+                                          style: ElevatedButton.styleFrom(
+                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            foregroundColor: Colors.white,
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 24,
+                                              vertical: 10,
+                                            ),
+                                            shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(30),
+                                            ),
+                                          ),
                                         ),
                                       ),
                                     ],

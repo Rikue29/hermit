@@ -5,9 +5,7 @@ import '../models/shared_item.dart';
 import '../models/request.dart';
 
 class SharedItemsService {
-  // In-memory storage for actual data
   static final List<SharedItem> _items = [
-    // My shared items with requests
     SharedItem(
       id: '1',
       title: 'Canned Goods',
@@ -38,7 +36,6 @@ class SharedItemsService {
       requestCount: 2,
       iconData: 'eco',
     ),
-    // Completed/Past shared items
     SharedItem(
       id: '3',
       title: 'Bread and Pastries',
@@ -57,7 +54,6 @@ class SharedItemsService {
   ];
 
   static final Map<String, List<Request>> _requests = {
-    // Requests for Canned Goods
     '1': [
       Request(
         id: 'r1',
@@ -89,7 +85,6 @@ class SharedItemsService {
         status: 'Pending',
       ),
     ],
-    // Requests for Fresh Vegetables
     '2': [
       Request(
         id: 'r4',
@@ -110,7 +105,6 @@ class SharedItemsService {
         status: 'Pending',
       ),
     ],
-    // Completed request for Bread
     '3': [
       Request(
         id: 'r6',
@@ -126,7 +120,6 @@ class SharedItemsService {
   };
 
   static final List<SharedItem> _requestedItems = [
-    // Items I've requested
     SharedItem(
       id: '4',
       title: 'Homemade Cookies',
@@ -142,7 +135,6 @@ class SharedItemsService {
       requestCount: 2,
       iconData: 'bakery_dining',
     ),
-    // Completed requests
     SharedItem(
       id: '5',
       title: 'Rice and Pasta',
@@ -160,16 +152,13 @@ class SharedItemsService {
     ),
   ];
 
-  // Simulate network delay
   Future<void> _simulateNetworkDelay() async {
     await Future.delayed(Duration(milliseconds: 500 + Random().nextInt(500)));
   }
 
-  // Get all my items (both shared and requested)
   Future<Map<String, List<SharedItem>>> getMyItems() async {
     await _simulateNetworkDelay();
 
-    // Separate items into active and past
     List<SharedItem> activeShared = _items
         .where((item) => item.status == 'Pending' || item.status == 'Matched')
         .toList();
@@ -195,7 +184,6 @@ class SharedItemsService {
     };
   }
 
-  // Share a new item
   Future<SharedItem> shareItem(Map<String, dynamic> itemData) async {
     await _simulateNetworkDelay();
 

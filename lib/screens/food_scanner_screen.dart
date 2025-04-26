@@ -1,4 +1,4 @@
-import 'dart:io'; // Required for File type
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../models/food_detection.dart';
@@ -8,12 +8,10 @@ import '../services/env_service.dart';
 import '../services/waste_management_service.dart';
 import '../services/recipe_service.dart';
 import 'dart:convert';
-import '../services/firestore_service.dart'; // Add Firestore service
+import '../services/firestore_service.dart';
 import '../models/recent_scan.dart';
 import 'package:flutter/rendering.dart';
 
-/// A screen that allows users to pick an image (camera/gallery)
-/// and uses the FoodDetector to identify items via Roboflow API.
 class FoodScannerScreen extends StatefulWidget {
   final Function(Recipe recipe)? onAddRecipeTask;
   final Function(WasteDisposalSuggestion suggestion)? onAddWasteSuggestionTask;
@@ -29,34 +27,28 @@ class FoodScannerScreen extends StatefulWidget {
 }
 
 class _FoodScannerScreenState extends State<FoodScannerScreen> {
-  // === State Variables and Controllers ===
   final FoodDetector _detector = FoodDetector();
   final ImagePicker _picker = ImagePicker();
   late FoodAnalysisService _foodAnalysisService;
   late FoodCarbonService _foodCarbonService;
-  late FirestoreService
-      _firestoreService; // Replace SharedPreferences with FirestoreService
+  late FirestoreService _firestoreService;
 
-  // State variables
-  List<RecentScan> _recentScans = []; // Holds recent scan results
-  bool _isLoading = false; // Tracks if the API call is in progress
-  String? _errorMessage; // Stores any error messages
-  XFile? _imageFile; // Holds the picked image file (path and other info)
-  List<DetectionResult> _detections = []; // Holds the results from the API
-  TextEditingController _detectionController =
-      TextEditingController(); // Controller for editing detection text
-  late dynamic _selectedFoodInfo; // Declare _selectedFoodInfo
-  final Set<String> _selectedItems = <String>{}; // Track selected food items
+  List<RecentScan> _recentScans = [];
+  bool _isLoading = false;
+  String? _errorMessage;
+  XFile? _imageFile;
+  List<DetectionResult> _detections = [];
+  TextEditingController _detectionController = TextEditingController();
+  late dynamic _selectedFoodInfo;
+  final Set<String> _selectedItems = <String>{};
 
-  // Add controller for DraggableScrollableSheet
   final DraggableScrollableController _dragController =
       DraggableScrollableController();
 
-  // === Lifecycle Methods ===
   @override
   void initState() {
     super.initState();
-    _firestoreService = FirestoreService(); // Initialize Firestore service
+    _firestoreService = FirestoreService();
     _initializeServices();
   }
 
@@ -66,7 +58,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     super.dispose();
   }
 
-  // === Initialization Methods ===
   Future<void> _initializeServices() async {
     try {
       if (EnvService.geminiApiKey.isEmpty) {
@@ -91,20 +82,15 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       setState(() {
         _recentScans = scans;
       });
-
-      // No longer load dummy scans when empty
-      // Just keep the empty state
     } catch (e) {
       print('Error loading recent scans: $e');
       setState(() {
         _errorMessage = e.toString();
         _recentScans = [];
       });
-      // No longer use dummy scans as fallback
     }
   }
 
-  // Load dummy scans for UI preview only (not saved to Firebase)
   void _loadDummyScans() async {
     print('Loading dummy scans for UI preview only');
     final dummyScans = [
@@ -130,9 +116,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       ),
     ];
 
-    // No longer save dummy data to Firestore
-    // Only update the UI state
-
     setState(() {
       _recentScans = dummyScans;
     });
@@ -140,7 +123,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     print('Dummy scans loaded for UI preview only');
   }
 
-  // === Core Scanning Functionality ===
   Future<void> _startScanning() async {
     if (_isLoading) return;
 
@@ -161,9 +143,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
           _detections = [];
         });
 
-        // Minimize the draggable sheet while scanning
         _dragController.animateTo(
-          0.15, // Minimum size
+          0.15,
           duration: const Duration(milliseconds: 300),
           curve: Curves.easeInOut,
         );
@@ -203,7 +184,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
   Future<void> _confirmDetection() async {
     if (_imageFile != null) {
-      // Get all the detected items from the text field (they're comma-separated)
       final detectedItems = _detectionController.text
           .split(',')
           .map((item) => item.trim())
@@ -212,22 +192,19 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
       print('Detected items for separate listing: $detectedItems');
 
-      // Create a new scan for each detected item
       final newScans = <RecentScan>[];
       for (final foodItem in detectedItems) {
         final newScan = RecentScan(
           foodItem: foodItem,
           timestamp: DateTime.now(),
-          imagePath: _imageFile!.path, // All items share the same image
+          imagePath: _imageFile!.path,
         );
         newScans.add(newScan);
       }
 
-      // Add to Firestore
       await _firestoreService.addScans(newScans);
 
       setState(() {
-        // Add all new scans to the beginning of the list
         _recentScans.insertAll(0, newScans);
 
         _imageFile = null;
@@ -235,7 +212,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         _detectionController.clear();
       });
 
-      // Return the draggable sheet to its normal position after confirming
       _dragController.animateTo(
         0.4,
         duration: const Duration(milliseconds: 300),
@@ -272,7 +248,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     }
   }
 
-  // === UI Building Methods ===
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -291,9 +266,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
             ),
           IconButton(
             icon: const Icon(Icons.info_outline),
-            onPressed: () {
-              // Show info dialog or navigate to info screen
-            },
+            onPressed: () {},
           ),
         ],
       ),
@@ -402,9 +375,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                   children: [
                     // Drag handle with animation feedback
                     GestureDetector(
-                      onVerticalDragUpdate: (details) {
-                        // The drag is handled by DraggableScrollableSheet
-                      },
+                      onVerticalDragUpdate: (details) {},
                       child: Container(
                         width: 100,
                         padding: const EdgeInsets.symmetric(vertical: 12),
@@ -1991,10 +1962,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   // === Data Management Methods ===
   void _clearRecentScans() async {
     try {
-      // Clear Firestore data
       await _firestoreService.clearScans();
 
-      // Clear the list in UI
       setState(() {
         _recentScans.clear();
       });
@@ -2002,7 +1971,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       print("Successfully cleared recent scans");
     } catch (e) {
       print("Error clearing recent scans: $e");
-      // Try to reload scans if clearing failed
       _loadRecentScans();
     }
   }
@@ -2011,12 +1979,10 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     try {
       final scan = _recentScans[index];
 
-      // Delete from Firestore if the scan has an ID
       if (scan.id != null) {
         await _firestoreService.deleteScan(scan.id!);
       }
 
-      // Update the UI
       setState(() {
         _recentScans.removeAt(index);
       });

@@ -62,7 +62,7 @@ Please provide accurate, concise information focusing on practical storage tips 
   }
 
   FoodInformation _parseFoodInformation(String foodItem, String response) {
-    double carbonFootprint = 0.4; // default value
+    double carbonFootprint = 0.4; 
     List<String> storageTips = [];
     bool isLocallyGrown = false;
 

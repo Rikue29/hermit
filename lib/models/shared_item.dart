@@ -9,9 +9,9 @@ class SharedItem {
   final String address;
   final String notes;
   final DateTime sharedAt;
-  final String status; // Pending, Matched, Reserved
+  final String status; 
   final int requestCount;
-  final String iconData; // Store the icon reference for the category
+  final String iconData;
 
   SharedItem({
     required this.id,
@@ -29,7 +29,6 @@ class SharedItem {
     required this.iconData,
   });
 
-  // Convert to JSON for backend
   Map<String, dynamic> toJson() {
     return {
       'id': id,
@@ -48,7 +47,6 @@ class SharedItem {
     };
   }
 
-  // Create from JSON from backend
   factory SharedItem.fromJson(Map<String, dynamic> json) {
     return SharedItem(
       id: json['id'],

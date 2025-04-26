@@ -5,7 +5,7 @@ class Request {
   final String requesterName;
   final String message;
   final DateTime requestedAt;
-  final String status; // Pending, Accepted, Rejected
+  final String status;
   final String? pickupTime;
 
   Request({

@@ -36,7 +36,10 @@ class _CommunityPageState extends State<CommunityPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Community',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
+        title: const Text(
+          'Community',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: Colors.green,
         leading: null,
         automaticallyImplyLeading: false,
@@ -80,9 +83,10 @@ class _CommunityPageState extends State<CommunityPage>
           } else if (index == 1) {
             Navigator.pushReplacement(
               context,
-              MaterialPageRoute(builder: (context) => const FoodScannerScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const FoodScannerScreen()),
             );
-          } // index == 2 is Community, do nothing
+          }
         },
         items: const [
           BottomNavigationBarItem(
@@ -209,15 +213,11 @@ class _CommunityPageState extends State<CommunityPage>
               if (result != null) {
                 try {
                   await _service.shareItem(result);
-                  // Increment shared items count
                   final prefs = await SharedPreferences.getInstance();
                   int currentCount = prefs.getInt('sharedItemsCount') ?? 0;
                   int newCount = currentCount + 1;
                   await prefs.setInt('sharedItemsCount', newCount);
-                  
-                  // Switch to My Shares tab
                   _tabController.animateTo(1);
-                  // Show success message
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -296,9 +296,7 @@ class _CommunityPageState extends State<CommunityPage>
           ),
           IconButton(
             icon: const Icon(Icons.filter_list),
-            onPressed: () {
-              // TODO: Show filter options
-            },
+            onPressed: () {},
             color: Colors.grey,
           ),
         ],
@@ -315,6 +313,13 @@ class _CommunityPageState extends State<CommunityPage>
     Color bgColor,
     IconData icon,
   ) {
+    final Map<String, String> imageUrls = {
+      'Vegetable Mix':
+          'https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=400&q=80',
+      'Bakery Box':
+          'https://images.unsplash.com/photo-1502741338009-cac2772e18bc?auto=format&fit=crop&w=400&q=80',
+    };
+    final String? imageUrl = imageUrls[title];
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -405,7 +410,6 @@ class _CommunityPageState extends State<CommunityPage>
                     child: ElevatedButton(
                       onPressed: () async {
                         try {
-                          // For demo, use id '1' for Vegetable Mix and '2' for Bakery Box
                           String itemId = title == 'Vegetable Mix' ? '1' : '2';
                           await _service.requestItem(
                               itemId, "I'd like to request this item!");

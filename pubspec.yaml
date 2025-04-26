@@ -63,7 +63,7 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
+   assets:
     - assets/
     - .env
     - assets/hermit_logo1.png

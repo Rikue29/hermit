@@ -1,12 +1,10 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
+import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'scan_screen.dart';
 
-enum TaskType {
-  recipe,
-  wasteManagement
-}
+enum TaskType { recipe, wasteManagement }
 
 class Task {
   final String title;
@@ -81,7 +79,7 @@ class _MyHomePageState extends State<Homepage> {
           title: title,
           timing: 'Today',
           tag: type == TaskType.recipe ? 'Recipe' : 'Waste',
-          tagColor: type == TaskType.recipe 
+          tagColor: type == TaskType.recipe
               ? const Color(0xFFE3EAFF)
               : const Color(0xFFDCFCE7),
           tagTextColor: type == TaskType.recipe
@@ -127,7 +125,8 @@ class _MyHomePageState extends State<Homepage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -253,8 +252,11 @@ class _MyHomePageState extends State<Homepage> {
                                   children: [
                                     CircularProgressIndicator(
                                       value: 0.75,
-                                      backgroundColor: Colors.white.withOpacity(0.2),
-                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                      backgroundColor:
+                                          Colors.white.withOpacity(0.2),
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                              Colors.white),
                                       strokeWidth: 4,
                                     ),
                                     Container(
@@ -333,7 +335,8 @@ class _MyHomePageState extends State<Homepage> {
                         ),
                         const SizedBox(height: 12),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(12),
@@ -448,7 +451,8 @@ class _MyHomePageState extends State<Homepage> {
                             shrinkWrap: true,
                             physics: const NeverScrollableScrollPhysics(),
                             itemCount: _tasks.length,
-                            separatorBuilder: (context, index) => const SizedBox(height: 24),
+                            separatorBuilder: (context, index) =>
+                                const SizedBox(height: 24),
                             itemBuilder: (context, index) {
                               final task = _tasks[index];
                               return Row(
@@ -462,13 +466,13 @@ class _MyHomePageState extends State<Homepage> {
                                       margin: const EdgeInsets.only(top: 2),
                                       decoration: BoxDecoration(
                                         border: Border.all(
-                                          color: task.isCompleted 
+                                          color: task.isCompleted
                                               ? const Color(0xFF4CAF50)
                                               : const Color(0xFFE5E7EB),
                                           width: 2,
                                         ),
                                         borderRadius: BorderRadius.circular(6),
-                                        color: task.isCompleted 
+                                        color: task.isCompleted
                                             ? const Color(0xFF4CAF50)
                                             : Colors.white,
                                       ),
@@ -484,10 +488,12 @@ class _MyHomePageState extends State<Homepage> {
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Expanded(
                                               child: Text(
@@ -500,20 +506,23 @@ class _MyHomePageState extends State<Homepage> {
                                                       : const Color(0xFF2D3142),
                                                   fontWeight: FontWeight.w600,
                                                   decoration: task.isCompleted
-                                                      ? TextDecoration.lineThrough
+                                                      ? TextDecoration
+                                                          .lineThrough
                                                       : null,
                                                 ),
                                               ),
                                             ),
                                             const SizedBox(width: 12),
                                             Container(
-                                              padding: const EdgeInsets.symmetric(
+                                              padding:
+                                                  const EdgeInsets.symmetric(
                                                 horizontal: 12,
                                                 vertical: 6,
                                               ),
                                               decoration: BoxDecoration(
                                                 color: task.tagColor,
-                                                borderRadius: BorderRadius.circular(100),
+                                                borderRadius:
+                                                    BorderRadius.circular(100),
                                               ),
                                               child: Text(
                                                 task.tag,
@@ -579,7 +588,8 @@ class _MyHomePageState extends State<Homepage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE3EAFF),
                       foregroundColor: const Color(0xFF2563EB),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -596,13 +606,15 @@ class _MyHomePageState extends State<Homepage> {
                   const SizedBox(height: 16),
                   ElevatedButton(
                     onPressed: () {
-                      _addTask('New Waste Management Item', TaskType.wasteManagement);
+                      _addTask('New Waste Management Item',
+                          TaskType.wasteManagement);
                       setState(() => _currentIndex = 0);
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFDCFCE7),
                       foregroundColor: const Color(0xFF15803D),
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 32, vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -629,10 +641,12 @@ class _MyHomePageState extends State<Homepage> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
-          if (index == 1) { // Scan tab
+          if (index == 1) {
+            // Scan tab
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => const ScanScreen()),
+              MaterialPageRoute(
+                  builder: (context) => const FoodScannerScreen()),
             );
           } else {
             setState(() => _currentIndex = index);

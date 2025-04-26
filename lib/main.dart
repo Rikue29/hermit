@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
-<<<<<<< Updated upstream
+
 import 'screens/Homepage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'screens/food_scanner_screen.dart'; // Corrected path
-=======
->>>>>>> Stashed changes
 import 'screens/main_layout.dart';
 import 'services/env_service.dart';
 

@@ -72,6 +72,7 @@ class _ScanScreenState extends State<ScanScreen>
   List<DetectionResult> _detections = [];
   TextEditingController _detectionController = TextEditingController();
   String? _errorMessage; // Stores any error messages
+  int _currentIndex = 1; // Tracks the current index of the BottomNavigationBar
 
   @override
   void initState() {

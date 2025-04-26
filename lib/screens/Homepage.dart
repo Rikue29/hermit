@@ -1,4 +1,3 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
@@ -7,10 +6,7 @@ import 'package:food_waste_reducer/services/waste_management_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 
-enum TaskType {
-  recipe,
-  disposal
-}
+enum TaskType { recipe, disposal }
 
 class Task {
   final String title;
@@ -103,7 +99,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   List<Task> _tasks = [];
   late SharedPreferences _prefs;
   final ImagePicker _picker = ImagePicker();
-  
+
   final List<Alert> _alerts = [
     Alert(
       title: 'Overdue Tasks Alert',
@@ -225,17 +221,21 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
       setState(() {
         _completedTasks[index] = true;
       });
-      
+
+      // Wait longer for the checkmark animation
       await Future.delayed(const Duration(milliseconds: 800));
-      
+
+      // Start fade out animation
       final fadeController = _getFadeController(index);
       await fadeController.forward();
-      
+
+      // Then remove the task and clean up
       setState(() {
         _tasks.removeAt(index);
         _completedTasks.remove(index);
       });
-      
+
+      // Clean up the controller
       fadeController.dispose();
       _fadeControllers.remove(index);
       
@@ -311,13 +311,19 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: alert.isRead ? const Color(0xFFE8F5E9) : const Color(0xFFFEF3C7),
+              color: alert.isRead
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFFEF3C7),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
               child: Icon(
-                alert.isRead ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                color: alert.isRead ? const Color(0xFF4CAF50) : const Color(0xFFD97706),
+                alert.isRead
+                    ? Icons.check_circle_outline
+                    : Icons.warning_amber_rounded,
+                color: alert.isRead
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFFD97706),
                 size: 18,
               ),
             ),
@@ -791,7 +797,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   Text(
                                     'Your Impact',
                                     style: TextStyle(
-                                      fontSize: 24,
+                                      fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
@@ -799,7 +805,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   Text(
                                     'This week',
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 18,
                                       color: Colors.white70,
                                     ),
                                   ),
@@ -812,17 +818,26 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    CircularProgressIndicator(
-                                      value: 0.75,
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.2),
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
-                                      strokeWidth: 4,
+                                    SizedBox(
+                                      width: 100, // smaller size
+                                      height: 100,
+                                      child: CircularProgressIndicator(
+                                        value: 0.75,
+                                        backgroundColor:
+                                            Colors.white.withOpacity(0.2),
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                        strokeWidth:
+                                            16, // thick but proportional to the size
+                                        strokeCap: StrokeCap
+                                            .round, // 👈 make the stroke ends rounded!
+                                      ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.all(8),
+                                      width:
+                                          90, // center space also reduced nicely
+                                      height: 90,
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.1),
                                         shape: BoxShape.circle,
@@ -832,8 +847,8 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                           '75%',
                                           style: TextStyle(
                                             color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 28,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
                                           ),
                                         ),
                                       ),
@@ -848,12 +863,12 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ImpactMetric(
-                                title: 'Saved',
-                                value: '3.2 kg',
-                              ),
-                              _ImpactMetric(
                                 title: 'Money Saved',
                                 value: '\$24',
+                              ),
+                               _ImpactMetric(
+                                title: 'Saved',
+                                value: '3.2 kg',
                               ),
                               _ImpactMetric(
                                 title: 'Shared Items',
@@ -905,11 +920,14 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _alerts.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                                itemBuilder: (context, index) => _buildAlertItem(_alerts[index], index),
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) =>
+                                    _buildAlertItem(_alerts[index], index),
                               )
                             : Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
@@ -1001,15 +1019,18 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   children: [
                                     GestureDetector(
                                       onTap: () => _toggleTask(index),
-                                      child: _buildTaskCheckbox(index, task.isCompleted),
+                                      child: _buildTaskCheckbox(
+                                          index, task.isCompleted),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Expanded(
                                                 child: Text(
@@ -1019,23 +1040,28 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                                     height: 1.5,
                                                     color: task.isCompleted
                                                         ? Colors.grey.shade400
-                                                        : const Color(0xFF2D3142),
+                                                        : const Color(
+                                                            0xFF2D3142),
                                                     fontWeight: FontWeight.w600,
                                                     decoration: task.isCompleted
-                                                        ? TextDecoration.lineThrough
+                                                        ? TextDecoration
+                                                            .lineThrough
                                                         : null,
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                   horizontal: 12,
                                                   vertical: 6,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: task.tagColor,
-                                                  borderRadius: BorderRadius.circular(100),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          100),
                                                 ),
                                                 child: Text(
                                                   task.tag,
@@ -1217,7 +1243,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     );
   }
 }
-
 class _ImpactMetric extends StatelessWidget {
   final String title;
   final String value;
@@ -1243,16 +1268,18 @@ class _ImpactMetric extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 12,
+              fontSize: 15,
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Center(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

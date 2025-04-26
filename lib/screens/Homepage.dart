@@ -100,6 +100,12 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   late SharedPreferences _prefs;
   final ImagePicker _picker = ImagePicker();
 
+  // Add impact tracking variables
+  double _totalImpactScore = 0.0;
+  double _moneySaved = 0.0;
+  double _kgSaved = 0.0;
+  int _itemsShared = 0;
+
   final List<Alert> _alerts = [
     Alert(
       title: 'Overdue Tasks Alert',
@@ -215,11 +221,51 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     _saveTasks();
   }
 
+  // Add method to calculate progress
+  double _calculateProgress() {
+    if (_tasks.isEmpty) return 0.0;
+    int completedTasks = _tasks.where((task) => task.isCompleted).length;
+    return completedTasks / _tasks.length;
+  }
+
+  // Calculate environmental impact (dummy calculations for simulation)
+  double _calculateEnvironmentalImpact() {
+    // For simulation: max impact score is 100
+    // Each completed task contributes based on its type
+    double maxScore = 100.0;
+    double currentScore = _totalImpactScore;
+    
+    // Cap the score at 100%
+    return (currentScore / maxScore).clamp(0.0, 1.0);
+  }
+
+  // Update impact metrics when a task is completed
+  void _updateImpactMetrics(Task task) {
+    setState(() {
+      // Simulate different impact based on task type
+      if (task.type == TaskType.recipe) {
+        _totalImpactScore += 15.0; // Recipe tasks have higher environmental impact
+        _moneySaved += 8.0; // Average money saved per recipe
+        _kgSaved += 0.8; // Average food waste prevented
+      } else {
+        _totalImpactScore += 10.0; // Disposal tasks
+        _kgSaved += 0.5; // Average waste properly disposed
+      }
+      
+      // Increment shared items counter (simulated)
+      if (_totalImpactScore % 30 == 0) { // Every few tasks completed
+        _itemsShared++;
+      }
+    });
+  }
+
   Future<void> _getImageFromGallery(int index) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       setState(() {
+        _tasks[index].isCompleted = true;
         _completedTasks[index] = true;
+        _updateImpactMetrics(_tasks[index]); // Update impact when task completed
       });
 
       // Wait longer for the checkmark animation
@@ -802,10 +848,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                       color: Colors.white,
                                     ),
                                   ),
+                                 
                                   Text(
-                                    'This week',
+                                    '(CO2, Energy Savings, \nWaste Reduction)',
                                     style: TextStyle(
-                                      fontSize: 18,
+                                      fontSize: 12,
                                       color: Colors.white70,
                                     ),
                                   ),
@@ -819,33 +866,30 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   alignment: Alignment.center,
                                   children: [
                                     SizedBox(
-                                      width: 100, // smaller size
+                                      width: 100,
                                       height: 100,
                                       child: CircularProgressIndicator(
-                                        value: 0.75,
+                                        value: _calculateEnvironmentalImpact(),
                                         backgroundColor:
                                             Colors.white.withOpacity(0.2),
                                         valueColor:
                                             const AlwaysStoppedAnimation<Color>(
                                                 Colors.white),
-                                        strokeWidth:
-                                            16, // thick but proportional to the size
-                                        strokeCap: StrokeCap
-                                            .round, // 👈 make the stroke ends rounded!
+                                        strokeWidth: 16,
+                                        strokeCap: StrokeCap.round,
                                       ),
                                     ),
                                     Container(
-                                      width:
-                                          90, // center space also reduced nicely
+                                      width: 90,
                                       height: 90,
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.1),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Center(
+                                      child: Center(
                                         child: Text(
-                                          '75%',
-                                          style: TextStyle(
+                                          '${(_calculateEnvironmentalImpact() * 100).toInt()}%',
+                                          style: const TextStyle(
                                             color: Colors.white,
                                             fontWeight: FontWeight.w600,
                                             fontSize: 26,
@@ -859,20 +903,20 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ImpactMetric(
                                 title: 'Money Saved',
-                                value: '\$24',
+                                value: '\$${_moneySaved.toStringAsFixed(0)}',
                               ),
-                               _ImpactMetric(
+                              _ImpactMetric(
                                 title: 'Saved',
-                                value: '3.2 kg',
+                                value: '${_kgSaved.toStringAsFixed(1)} kg',
                               ),
                               _ImpactMetric(
                                 title: 'Shared Items',
-                                value: '5',
+                                value: _itemsShared.toString(),
                               ),
                             ],
                           ),

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
 import 'package:http/http.dart' as http;
 
 /// Represents a single detected object from the Roboflow API.
@@ -39,13 +40,11 @@ class DetectionResult {
   }
 }
 
-/// Handles communication with the Roboflow hosted inference API.
+/// Handles communication with the Roboflow API.
 class FoodDetector {
-  // IMPORTANT: Avoid hardcoding API keys in production. Use secure storage.
-  final String _apiKey = "vrEeEAx2vhjcfk6Ub5U3";
-  final String _modelEndpoint = "ingredients-detection-yolov8-npkkb/5";
-  // Using detect.roboflow.com as the common inference endpoint
-  final String _apiUrl = "https://detect.roboflow.com";
+  // API credentials - using the model that works with Method 1
+  final String _apiKey = "c3XQV0tBY60urmHfsY3d";
+  final String _modelId = "initial-test-i1hx0/1";
 
   /// Detects food items in an image using the Roboflow API.
   ///
@@ -53,70 +52,85 @@ class FoodDetector {
   /// Returns a list of [DetectionResult] objects.
   /// Throws an exception if the API call fails or the file doesn't exist.
   Future<List<DetectionResult>> detectFoodItems(String imagePath) async {
-    final file = File(imagePath);
-    if (!await file.exists()) {
-      print("Error: Image file not found at $imagePath");
-      throw Exception("Image file not found: $imagePath");
-    }
-
-    // 1. Read and encode image to Base64
-    final imageBytes = await file.readAsBytes();
-    final base64Image = base64Encode(imageBytes);
-
-    // 2. Construct the API URL
-    // Example: https://detect.roboflow.com/ingredients-detection-yolov8-npkkb/5?api_key=YOUR_API_KEY
-    final uri = Uri.parse(
-      "$_apiUrl/$_modelEndpoint",
-    ).replace(queryParameters: {'api_key': _apiKey});
-
-    print("Sending request to: $uri"); // For debugging
-
-    // 3. Make the POST request
     try {
+      print("⭐ Starting food detection with: $imagePath");
+
+      // 1. Check if file exists
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        print("❌ Error: Image file not found at $imagePath");
+        throw Exception("Image file not found: $imagePath");
+      }
+
+      // 2. Read image file and encode as base64
+      final imageBytes = await file.readAsBytes();
+      final base64Image = base64Encode(imageBytes);
+
+      // 3. Use the proven working method: detect.roboflow.com with query param auth
+      final uri = Uri.parse("https://detect.roboflow.com/$_modelId")
+          .replace(queryParameters: {'api_key': _apiKey});
+
+      print("🔗 Sending request to: $uri");
+
+      // 4. Make the API call
       final response = await http.post(
         uri,
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Accept': 'application/json',
-        },
-        // Send the base64 image data directly as the body
+        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
         body: base64Image,
       );
 
-      // 4. Handle the response
+      print("📥 Response status: ${response.statusCode}");
+
+      // 5. Process the response
       if (response.statusCode == 200) {
+        return _processResponse(response);
+      } else {
+        print("❌ API call failed: ${response.body}");
+        throw Exception("API call failed with status: ${response.statusCode}");
+      }
+    } catch (e) {
+      print("❌ Error during food detection: $e");
+      rethrow;
+    }
+  }
+
+  /// Helper method to process API responses
+  List<DetectionResult> _processResponse(http.Response response) {
+    if (response.statusCode == 200) {
+      print("✅ API call successful");
+
+      try {
         final responseBody = jsonDecode(response.body);
-        print("API Response: ${response.body}"); // For debugging
+        print("📊 API Response body: ${response.body}");
 
         // Parse predictions
-        if (responseBody['predictions'] is List) {
+        if (responseBody['predictions'] != null &&
+            responseBody['predictions'] is List) {
           final List predictionsJson = responseBody['predictions'];
+          print("🔍 Found ${predictionsJson.length} predictions");
+
           final List<DetectionResult> detections = predictionsJson
-              .map(
-                (json) =>
-                    DetectionResult.fromJson(json as Map<String, dynamic>),
-              )
+              .map((json) =>
+                  DetectionResult.fromJson(json as Map<String, dynamic>))
               .toList();
-          print("Detected items: $detections"); // For debugging
+
+          print("✅ Parsed detections: $detections");
           return detections;
         } else {
           print(
-            "Warning: 'predictions' field not found or not a list in response.",
-          );
+              "⚠️ Warning: 'predictions' field not found or not a list in response. Full response: ${response.body}");
           return []; // Return empty list if predictions are missing
         }
-      } else {
-        print(
-          "Error: Failed to detect food items. Status: ${response.statusCode}, Body: ${response.body}",
-        );
-        throw Exception(
-          "Failed to detect food items. Status code: ${response.statusCode}",
-        );
+      } catch (e) {
+        print("❌ Error parsing response JSON: $e");
+        print("📄 Response that failed to parse: ${response.body}");
+        throw Exception("Failed to parse API response: $e");
       }
-    } catch (e) {
-      print("Error during food detection API call: $e");
-      // Rethrow the exception to be handled by the caller
-      rethrow;
+    } else {
+      print("❌ API call failed with status: ${response.statusCode}");
+      print("📄 Error response body: ${response.body}");
+      throw Exception(
+          "API call failed with status code: ${response.statusCode}, body: ${response.body}");
     }
   }
 }

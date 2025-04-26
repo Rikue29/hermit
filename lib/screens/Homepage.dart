@@ -2,7 +2,6 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
-import 'scan_screen.dart';
 
 enum TaskType { recipe, wasteManagement }
 

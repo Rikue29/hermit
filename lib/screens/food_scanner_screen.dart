@@ -44,36 +44,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   void initState() {
     super.initState();
     _initializeServices();
-    _loadDummyScans(); // Load dummy scans initially
-  }
-
-  void _loadDummyScans() {
-    final dummyScans = [
-      RecentScan(
-        foodItem: 'Apples',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-      ),
-      RecentScan(
-        foodItem: 'Oranges',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-      ),
-      RecentScan(
-        foodItem: 'Bananas',
-        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-      ),
-      RecentScan(
-        foodItem: 'Grapes',
-        timestamp: DateTime.now().subtract(const Duration(days: 1)),
-      ),
-      RecentScan(
-        foodItem: 'Pears',
-        timestamp: DateTime.now().subtract(const Duration(days: 2)),
-      ),
-    ];
-
-    setState(() {
-      _recentScans = dummyScans;
-    });
   }
 
   Future<void> _initializeServices() async {
@@ -86,48 +56,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       );
       _foodCarbonService = FoodCarbonService(apiKey: EnvService.geminiApiKey);
       _prefs = await SharedPreferences.getInstance();
-
-      // Clear SharedPreferences for development purposes
-      await _prefs.clear();
-
-      // Check if this is the first run
-      final isFirstRun = _prefs.getBool('is_first_run') ?? true;
-      if (isFirstRun) {
-        // Add dummy data for testing
-        final dummyScans = [
-          RecentScan(
-            foodItem: 'Apples',
-            timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
-          ),
-          RecentScan(
-            foodItem: 'Oranges',
-            timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-          ),
-          RecentScan(
-            foodItem: 'Bananas',
-            timestamp: DateTime.now().subtract(const Duration(hours: 5)),
-          ),
-          RecentScan(
-            foodItem: 'Grapes',
-            timestamp: DateTime.now().subtract(const Duration(days: 1)),
-          ),
-          RecentScan(
-            foodItem: 'Pears',
-            timestamp: DateTime.now().subtract(const Duration(days: 2)),
-          ),
-        ];
-
-        await _prefs.setStringList(
-          'recent_scans',
-          dummyScans.map((scan) => jsonEncode(scan.toJson())).toList(),
-        );
-        await _prefs.setBool('is_first_run', false);
-        print(
-          'Dummy data stored: ' +
-              dummyScans.map((scan) => scan.toJson()).toList().toString(),
-        );
-      }
-
       await _loadRecentScans();
     } catch (e) {
       setState(() {
@@ -246,129 +174,275 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            const SizedBox(height: 20),
-            Center(
-              child: Column(
-                children: [
-                  if (_imageFile != null)
-                    Image.file(
-                      File(_imageFile!.path),
-                      height: 200,
-                      fit: BoxFit.cover,
-                    )
-                  else
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.green[100],
-                      child: const Icon(
-                        Icons.camera_alt,
-                        size: 50,
-                        color: Colors.green,
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const SizedBox(height: 20),
+                Center(
+                  child: Column(
+                    children: [
+                      if (_imageFile != null)
+                        Image.file(
+                          File(_imageFile!.path),
+                          height: 200,
+                          fit: BoxFit.cover,
+                        )
+                      else
+                        CircleAvatar(
+                          radius: 50,
+                          backgroundColor: Colors.green[100],
+                          child: const Icon(
+                            Icons.camera_alt,
+                            size: 50,
+                            color: Colors.green,
+                          ),
+                        ),
+                      const SizedBox(height: 20),
+                      const Text(
+                        'Scan Your Food',
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                       ),
-                    ),
+                      const SizedBox(height: 10),
+                      const Text(
+                        'Take a photo of your food to get expiry estimates, carbon footprint, and recipe suggestions',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 16, color: Colors.grey),
+                      ),
+                      const SizedBox(height: 30),
+                      ElevatedButton(
+                        onPressed: _isLoading ? null : _startScanning,
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 16,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                        ),
+                        child: const Text(
+                          'Start Scanning',
+                          style: TextStyle(fontSize: 18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 40),
+                if (_imageFile != null) ...[
                   const SizedBox(height: 20),
-                  const Text(
-                    'Scan Your Food',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 10),
-                  const Text(
-                    'Take a photo of your food to get expiry estimates, carbon footprint, and recipe suggestions',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey),
-                  ),
-                  const SizedBox(height: 30),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _startScanning,
-                    style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                  if (_isLoading) const Center(child: CircularProgressIndicator()),
+                  if (!_isLoading && _detections.isNotEmpty) ...[
+                    TextField(
+                      controller: _detectionController,
+                      decoration: const InputDecoration(
+                        labelText: 'Detected Item',
+                        border: OutlineInputBorder(),
                       ),
                     ),
-                    child: const Text(
-                      'Start Scanning',
-                      style: TextStyle(fontSize: 18),
+                    const SizedBox(height: 10),
+                    ElevatedButton(
+                      onPressed: _confirmDetection,
+                      child: const Text('Confirm'),
                     ),
-                  ),
+                  ],
                 ],
-              ),
-            ),
-            const SizedBox(height: 40),
-            if (_imageFile != null) ...[
-              const SizedBox(height: 20),
-              if (_isLoading) const Center(child: CircularProgressIndicator()),
-              if (!_isLoading && _detections.isNotEmpty) ...[
-                TextField(
-                  controller: _detectionController,
-                  decoration: const InputDecoration(
-                    labelText: 'Detected Item',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _confirmDetection,
-                  child: const Text('Confirm'),
-                ),
               ],
-            ],
-            const SizedBox(height: 40),
-            const Text(
-              'Recent Scans',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
-            // Display recent scans
-            ..._recentScans.map(
-              (scan) => GestureDetector(
-                onTap: () => _showFoodDetails(scan.foodItem),
-                child: Card(
-                  child: ListTile(
-                    leading: Container(
-                      width: 50,
-                      height: 50,
+          ),
+          DraggableScrollableSheet(
+            initialChildSize: 0.15,
+            minChildSize: 0.15,
+            maxChildSize: 0.7,
+            builder: (context, scrollController) {
+              return Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Drag handle
+                    Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.symmetric(vertical: 12),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: scan.imagePath != null
-                            ? Image.file(
-                                File(scan.imagePath!),
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Container(
-                                    color: Colors.grey[200],
-                                    child: Icon(Icons.image_not_supported,
-                                        color: Colors.grey[400]),
-                                  );
-                                },
-                              )
-                            : Container(
-                                color: Colors.grey[200],
-                                child: Icon(Icons.image_not_supported,
-                                    color: Colors.grey[400]),
-                              ),
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
-                    title: Text(scan.foodItem),
-                    subtitle: Text('Scanned on: ${scan.timestamp}'),
-                    trailing: const Text('N/A'),
-                  ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      child: Row(
+                        children: [
+                          Text(
+                            'Recent Scans (${_recentScans.length})',
+                            style: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const Spacer(),
+                          if (_recentScans.isNotEmpty)
+                            TextButton(
+                              onPressed: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text('Clear History'),
+                                    content: const Text(
+                                      'Are you sure you want to clear all recent scans?',
+                                    ),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () => Navigator.pop(context),
+                                        child: const Text('Cancel'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                          _clearRecentScans();
+                                        },
+                                        child: const Text(
+                                          'Clear',
+                                          style: TextStyle(color: Colors.red),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              child: const Text('Clear All'),
+                            ),
+                        ],
+                      ),
+                    ),
+                    Expanded(
+                      child: _recentScans.isEmpty
+                          ? Center(
+                              child: Text(
+                                'No recent scans',
+                                style: TextStyle(
+                                  color: Colors.grey.shade600,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            )
+                          : ListView.builder(
+                              controller: scrollController,
+                              padding: const EdgeInsets.all(16),
+                              itemCount: _recentScans.length,
+                              itemBuilder: (context, index) {
+                                final scan = _recentScans[index];
+                                return Container(
+                                  margin: const EdgeInsets.only(bottom: 12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: Colors.grey.shade200,
+                                    ),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      onTap: () => _showFoodDetails(scan.foodItem),
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Padding(
+                                        padding: const EdgeInsets.all(12),
+                                        child: Row(
+                                          children: [
+                                            Container(
+                                              width: 60,
+                                              height: 60,
+                                              decoration: BoxDecoration(
+                                                borderRadius: BorderRadius.circular(8),
+                                                color: Colors.grey.shade200,
+                                              ),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: scan.imagePath != null
+                                                    ? Image.file(
+                                                        File(scan.imagePath!),
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder: (context, error, stackTrace) {
+                                                          return Icon(
+                                                            Icons.image_not_supported,
+                                                            color: Colors.grey[400],
+                                                          );
+                                                        },
+                                                      )
+                                                    : Icon(
+                                                        Icons.image_not_supported,
+                                                        color: Colors.grey[400],
+                                                      ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 16),
+                                            Expanded(
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    scan.foodItem,
+                                                    style: const TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Text(
+                                                    'Scanned on: ${scan.timestamp.year}-${scan.timestamp.month.toString().padLeft(2, '0')}-${scan.timestamp.day.toString().padLeft(2, '0')} ${scan.timestamp.hour.toString().padLeft(2, '0')}:${scan.timestamp.minute.toString().padLeft(2, '0')}:${scan.timestamp.second.toString().padLeft(2, '0')}.${scan.timestamp.millisecond.toString().padLeft(3, '0')}',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: Colors.grey[600],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'N/A',
+                                              style: TextStyle(
+                                                color: Colors.grey[600],
+                                                fontSize: 14,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                    ),
+                  ],
                 ),
+              );
+            },
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }
@@ -1226,8 +1300,21 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   Future<void> _saveRecentScan(String foodItem) async {
-    // Implement the logic to save a recent scan
-    // This could involve saving to SharedPreferences or another storage solution
+    final newScan = RecentScan(
+      foodItem: foodItem,
+      timestamp: DateTime.now(),
+      imagePath: _imageFile?.path,
+    );
+
+    _recentScans.insert(0, newScan);
+    if (_recentScans.length > 20) {
+      _recentScans.removeLast();
+    }
+    await _prefs.setStringList(
+      'recent_scans',
+      _recentScans.map((scan) => jsonEncode(scan.toJson())).toList(),
+    );
+    setState(() {});
   }
 
   Widget _buildFoodDetailsDialog(String foodItem, dynamic foodInfo) {
@@ -1283,8 +1370,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         final carbonData = snapshot.data!;
 
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -1332,8 +1418,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       ? Image.file(
                                           File(scan.imagePath!),
                                           fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) {
+                                          errorBuilder: (context, error, stackTrace) {
                                             return Container(
                                               color: Colors.grey[200],
                                               child: Icon(
@@ -1344,10 +1429,13 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             );
                                           },
                                         )
-                                      : Icon(
-                                          Icons.image_not_supported,
-                                          color: Colors.grey[400],
-                                          size: 40,
+                                      : Container(
+                                          color: Colors.grey[200],
+                                          child: Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey[400],
+                                            size: 40,
+                                          ),
                                         ),
                                 ),
                               ),
@@ -1368,6 +1456,14 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       'Environmental Grade: ${carbonData.impactLevel}',
                                       style: TextStyle(
                                         fontSize: 16,
+                                        color: Colors.grey[600],
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Scanned on: ${scan.timestamp.day}/${scan.timestamp.month}/${scan.timestamp.year} at ${scan.timestamp.hour}:${scan.timestamp.minute.toString().padLeft(2, '0')}',
+                                      style: TextStyle(
+                                        fontSize: 14,
                                         color: Colors.grey[600],
                                       ),
                                     ),
@@ -1557,5 +1653,12 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       // Add more mappings as needed
     };
     return foodEmojis[foodItem] ?? '🥗';
+  }
+
+  void _clearRecentScans() {
+    setState(() {
+      _recentScans.clear();
+      _prefs.remove('recent_scans');
+    });
   }
 }

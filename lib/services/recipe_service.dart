@@ -40,6 +40,19 @@ class Recipe {
       imageEmoji: json['imageEmoji'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'description': description,
+    'ingredients': ingredients,
+    'steps': steps,
+    'difficulty': difficulty,
+    'prepTime': prepTime,
+    'cookTime': cookTime,
+    'servings': servings,
+    'category': category,
+    'imageEmoji': imageEmoji,
+  };
 }
 
 class RecipeService {
@@ -86,6 +99,46 @@ Return the response as a JSON array of 3 recipes.
       return recipesJson.map((json) => Recipe.fromJson(json)).toList();
     } catch (e) {
       throw Exception('Failed to generate recipes: $e');
+    }
+  }
+
+  Future<List<Recipe>> getRecipeSuggestionsForMultipleItems(List<String> foodItems) async {
+    try {
+      final itemsList = foodItems.join(', ');
+      final prompt = '''
+Generate 3 creative recipe suggestions that combine some or all of these ingredients: $itemsList. 
+Prioritize recipes that use multiple items from the list to reduce food waste.
+For each recipe, provide the following in JSON format:
+{
+  "name": "Recipe name",
+  "description": "Brief description",
+  "ingredients": ["list", "of", "ingredients"],
+  "steps": ["step 1", "step 2", "etc"],
+  "difficulty": "Easy/Medium/Hard",
+  "prepTime": "X mins",
+  "cookTime": "X mins",
+  "servings": "X servings",
+  "category": "Main Course/Dessert/Snack/etc",
+  "imageEmoji": "relevant food emoji"
+}
+Return the response as a JSON array of 3 recipes.
+''';
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null) {
+        throw Exception('Failed to generate recipes');
+      }
+
+      // Extract JSON array from the response
+      final jsonString = responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+      final List<dynamic> recipesJson = json.decode(jsonString);
+      
+      return recipesJson.map((json) => Recipe.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Failed to generate recipes for multiple items: $e');
     }
   }
 } 

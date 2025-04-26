@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:hermit/homepage.dart';
+
+import 'screens/Homepage.dart';
 import 'package:image_picker/image_picker.dart';
 import 'screens/food_scanner_screen.dart'; // Corrected path
-import 'screens/main_layout.dart';
 import 'services/env_service.dart';
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -19,6 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Hermit',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
         scaffoldBackgroundColor: Colors.white,
@@ -31,4 +31,3 @@ class MyApp extends StatelessWidget {
     );
   }
 }
-

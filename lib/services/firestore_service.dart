@@ -5,7 +5,6 @@ class FirestoreService {
   final CollectionReference _scans =
       FirebaseFirestore.instance.collection('recent_scans');
 
-  // Get all recent scans ordered by timestamp (newest first)
   Future<List<RecentScan>> getRecentScans() async {
     try {
       final snapshot =
@@ -21,7 +20,6 @@ class FirestoreService {
     }
   }
 
-  // Add a new scan
   Future<void> addScan(RecentScan scan) async {
     try {
       await _scans.add(scan.toJson());
@@ -31,7 +29,6 @@ class FirestoreService {
     }
   }
 
-  // Delete a scan by ID
   Future<void> deleteScan(String id) async {
     try {
       await _scans.doc(id).delete();
@@ -41,7 +38,6 @@ class FirestoreService {
     }
   }
 
-  // Clear all scans
   Future<void> clearScans() async {
     try {
       final batch = FirebaseFirestore.instance.batch();
@@ -58,7 +54,6 @@ class FirestoreService {
     }
   }
 
-  // Add multiple scans at once
   Future<void> addScans(List<RecentScan> scans) async {
     try {
       final batch = FirebaseFirestore.instance.batch();

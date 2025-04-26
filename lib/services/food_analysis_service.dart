@@ -16,7 +16,7 @@ class FoodInformation {
 
 class FoodAnalysisService {
   final GenerativeModel? _model;
-  
+
   FoodAnalysisService({String? apiKey})
       : _model = apiKey != null
             ? GenerativeModel(
@@ -30,7 +30,8 @@ class FoodAnalysisService {
       throw Exception('Gemini API key not configured');
     }
 
-    final prompt = '''As a food sustainability expert, provide information about $foodItem in the following format:
+    final prompt =
+        '''As a food sustainability expert, provide information about $foodItem in the following format:
 
 [CARBON_FOOTPRINT]
 Provide the carbon footprint in kg CO2e per kg. Give a single number between 0.1 and 5.0.
@@ -49,7 +50,7 @@ Please provide accurate, concise information focusing on practical storage tips 
     try {
       final content = [Content.text(prompt)];
       final response = await _model!.generateContent(content);
-      
+
       if (response.text == null || response.text!.isEmpty) {
         throw Exception('Empty response from API');
       }
@@ -66,7 +67,7 @@ Please provide accurate, concise information focusing on practical storage tips 
     bool isLocallyGrown = false;
 
     final sections = response.split('[');
-    
+
     for (var section in sections) {
       if (section.startsWith('CARBON_FOOTPRINT]')) {
         final footprintText = section
@@ -98,7 +99,6 @@ Please provide accurate, concise information focusing on practical storage tips 
       }
     }
 
-    // Ensure we have exactly 3 storage tips
     while (storageTips.length < 3) {
       storageTips.add('Store in a cool, dry place');
     }
@@ -110,4 +110,4 @@ Please provide accurate, concise information focusing on practical storage tips 
       isLocallyGrown: isLocallyGrown,
     );
   }
-} 
+}

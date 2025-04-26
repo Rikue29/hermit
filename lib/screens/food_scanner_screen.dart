@@ -673,26 +673,15 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                           color: color,
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          suggestion.category,
-                                          style: TextStyle(
-                                            color: color,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          Icons.timer_outlined,
-                                          size: 16,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          timeEstimate,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 12,
+                                        Flexible(
+                                          child: Text(
+                                            suggestion.category,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ],
@@ -1697,47 +1686,64 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         ],
       ),
       child: SafeArea(
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${_selectedItems.length} selected',
-              style: const TextStyle(
-                fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Flexible(
+                child: Text(
+                  '${_selectedItems.length} selected',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
-            ),
-            Row(
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
-                  },
-                  icon: const Icon(Icons.restaurant_menu, size: 18),
-                  label: const Text('Generate Recipes'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3E6B3D),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 13),
-                  ),
+              Flexible(
+                flex: 2,
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  alignment: WrapAlignment.end,
+                  children: [
+                    SizedBox(
+                      height: 36,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
+                        },
+                        icon: const Icon(Icons.restaurant_menu, size: 16),
+                        label: const Text('Generate Recipes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF3E6B3D),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ),
+                    SizedBox(
+                      height: 36,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          _showBatchWasteManagementDialog(_selectedItems.toList());
+                        },
+                        icon: const Icon(Icons.eco, size: 16),
+                        label: const Text('Waste Management'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF4A5F4A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                          textStyle: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    _showBatchWasteManagementDialog(_selectedItems.toList());
-                  },
-                  icon: const Icon(Icons.eco, size: 18),
-                  label: const Text('Waste Management'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A5F4A),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    textStyle: const TextStyle(fontSize: 13),
-                  ),
-                ),
-              ],
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -2162,12 +2168,15 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                           color: color,
                                         ),
                                         const SizedBox(width: 4),
-                                        Text(
-                                          suggestion.category,
-                                          style: TextStyle(
-                                            color: color,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 14,
+                                        Flexible(
+                                          child: Text(
+                                            suggestion.category,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontWeight: FontWeight.w500,
+                                              fontSize: 14,
+                                            ),
+                                            overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
                                       ],

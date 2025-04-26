@@ -34,6 +34,17 @@ class WasteDisposalSuggestion {
     );
   }
 
+  Map<String, dynamic> toJson() => {
+    'category': category,
+    'suggestion': suggestion,
+    'description': description,
+    'steps': steps,
+    'environmentalImpact': environmentalImpact,
+    'location': location,
+    'difficulty': difficulty,
+    'emoji': emoji,
+  };
+
   @override
   String toString() {
     return 'WasteDisposalSuggestion(category: $category, suggestion: $suggestion, steps: ${steps.length} steps)';

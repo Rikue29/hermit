@@ -4,6 +4,8 @@ import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:food_waste_reducer/services/recipe_service.dart';
 import 'package:food_waste_reducer/services/waste_management_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
 enum TaskType {
   recipe,
@@ -17,6 +19,8 @@ class Task {
   final Color tagColor;
   final Color tagTextColor;
   final TaskType type;
+  final Recipe? recipeDetails;
+  final WasteDisposalSuggestion? wasteSuggestion;
   bool isCompleted;
 
   Task({
@@ -26,8 +30,53 @@ class Task {
     required this.tagColor,
     required this.tagTextColor,
     required this.type,
+    this.recipeDetails,
+    this.wasteSuggestion,
     this.isCompleted = false,
   });
+
+  // Convert color to hex string
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0')}';
+  }
+
+  // Convert hex string to color
+  static Color _hexToColor(String hex) {
+    return Color(int.parse(hex.substring(1), radix: 16));
+  }
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'timing': timing,
+    'tag': tag,
+    'tagColor': _colorToHex(tagColor),
+    'tagTextColor': _colorToHex(tagTextColor),
+    'type': type.toString(),
+    'isCompleted': isCompleted,
+    'recipeDetails': recipeDetails?.toJson(),
+    'wasteSuggestion': wasteSuggestion?.toJson(),
+  };
+
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      title: json['title'],
+      timing: json['timing'],
+      tag: json['tag'],
+      tagColor: _hexToColor(json['tagColor']),
+      tagTextColor: _hexToColor(json['tagTextColor']),
+      type: TaskType.values.firstWhere(
+        (e) => e.toString() == json['type'],
+        orElse: () => TaskType.disposal,
+      ),
+      isCompleted: json['isCompleted'] ?? false,
+      recipeDetails: json['recipeDetails'] != null
+          ? Recipe.fromJson(json['recipeDetails'])
+          : null,
+      wasteSuggestion: json['wasteSuggestion'] != null
+          ? WasteDisposalSuggestion.fromJson(json['wasteSuggestion'])
+          : null,
+    );
+  }
 }
 
 class Alert {
@@ -51,41 +100,8 @@ class Homepage extends StatefulWidget {
 
 class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   int _currentIndex = 0;
-  final List<Task> _tasks = [
-    Task(
-      title: 'Make vegetable stock from scraps',
-      timing: 'Today',
-      tag: 'Kitchen',
-      tagColor: const Color(0xFFE3EAFF),
-      tagTextColor: const Color(0xFF2563EB),
-      type: TaskType.recipe,
-    ),
-    Task(
-      title: 'Freeze ripe bananas for smoothies',
-      timing: 'Today',
-      tag: 'Urgent',
-      tagColor: const Color(0xFFFFF3DC),
-      tagTextColor: const Color(0xFFB45309),
-      type: TaskType.recipe,
-    ),
-    Task(
-      title: 'Organize fridge with FIFO system',
-      timing: 'Tomorrow',
-      tag: 'Planning',
-      tagColor: const Color(0xFFF3E5FF),
-      tagTextColor: const Color(0xFF7C3AED),
-      type: TaskType.disposal,
-    ),
-    Task(
-      title: 'Make compost from food scraps',
-      timing: 'This week',
-      tag: 'Garden',
-      tagColor: const Color(0xFFDCFCE7),
-      tagTextColor: const Color(0xFF15803D),
-      type: TaskType.disposal,
-    ),
-  ];
-
+  List<Task> _tasks = [];
+  late SharedPreferences _prefs;
   final ImagePicker _picker = ImagePicker();
   
   final List<Alert> _alerts = [
@@ -105,6 +121,28 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _initializePrefs();
+  }
+
+  Future<void> _initializePrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final tasksJson = _prefs.getStringList('tasks') ?? [];
+    setState(() {
+      _tasks = tasksJson
+          .map((json) => Task.fromJson(jsonDecode(json)))
+          .toList();
+    });
+  }
+
+  Future<void> _saveTasks() async {
+    final tasksJson = _tasks
+        .map((task) => jsonEncode(task.toJson()))
+        .toList();
+    await _prefs.setStringList('tasks', tasksJson);
   }
 
   @override
@@ -144,6 +182,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         ),
       );
     });
+    _saveTasks();
   }
 
   void _addTaskFromRecipe(Recipe recipe) {
@@ -156,9 +195,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
           tagColor: const Color(0xFFE3EAFF),
           tagTextColor: const Color(0xFF2563EB),
           type: TaskType.recipe,
+          recipeDetails: recipe,
         ),
       );
     });
+    _saveTasks();
   }
 
   void _addTaskFromWasteSuggestion(WasteDisposalSuggestion suggestion) {
@@ -171,35 +212,34 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
           tagColor: const Color(0xFFDCFCE7),
           tagTextColor: const Color(0xFF15803D),
           type: TaskType.disposal,
+          wasteSuggestion: suggestion,
         ),
       );
     });
+    _saveTasks();
   }
 
   Future<void> _getImageFromGallery(int index) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // First mark as completed to show animation
       setState(() {
         _completedTasks[index] = true;
       });
       
-      // Wait longer for the checkmark animation
       await Future.delayed(const Duration(milliseconds: 800));
       
-      // Start fade out animation
       final fadeController = _getFadeController(index);
       await fadeController.forward();
       
-      // Then remove the task and clean up
       setState(() {
         _tasks.removeAt(index);
         _completedTasks.remove(index);
       });
       
-      // Clean up the controller
       fadeController.dispose();
       _fadeControllers.remove(index);
+      
+      _saveTasks();
     }
   }
 
@@ -364,6 +404,306 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
               color: Colors.white,
             )
           : null,
+    );
+  }
+
+  void _showTaskDetails(Task task) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxWidth: 600,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: task.tagColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        task.type == TaskType.recipe
+                            ? Icons.restaurant_menu
+                            : Icons.eco,
+                        color: task.tagTextColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: task.tagTextColor,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                        color: task.tagTextColor,
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: task.type == TaskType.recipe
+                        ? _buildRecipeDetails(task.recipeDetails!)
+                        : _buildWasteSuggestionDetails(task.wasteSuggestion!),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecipeDetails(Recipe recipe) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          recipe.description,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildInfoChip(Icons.timer, recipe.prepTime),
+            _buildInfoChip(Icons.local_fire_department, recipe.cookTime),
+            _buildInfoChip(Icons.people, recipe.servings),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Ingredients',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recipe.ingredients.map(
+          (ingredient) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.fiber_manual_record, size: 8),
+                const SizedBox(width: 8),
+                Expanded(child: Text(ingredient)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Instructions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recipe.steps.asMap().entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWasteSuggestionDetails(WasteDisposalSuggestion suggestion) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    suggestion.emoji,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    suggestion.category,
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (suggestion.location != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Where to go:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        suggestion.location!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        const Text(
+          'Steps to follow:',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...suggestion.steps.asMap().entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -711,17 +1051,47 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                             ],
                                           ),
                                           const SizedBox(height: 4),
-                                          Text(
-                                            task.timing,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: task.isCompleted
-                                                  ? Colors.grey.shade400
-                                                  : Colors.grey.shade600,
-                                              decoration: task.isCompleted
-                                                  ? TextDecoration.lineThrough
-                                                  : null,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                task.timing,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: task.isCompleted
+                                                      ? Colors.grey.shade400
+                                                      : Colors.grey.shade600,
+                                                  decoration: task.isCompleted
+                                                      ? TextDecoration.lineThrough
+                                                      : null,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              if (!task.isCompleted && (task.recipeDetails != null || task.wasteSuggestion != null))
+                                                TextButton.icon(
+                                                  onPressed: () => _showTaskDetails(task),
+                                                  icon: Icon(
+                                                    task.type == TaskType.recipe
+                                                        ? Icons.restaurant_menu
+                                                        : Icons.eco,
+                                                    size: 16,
+                                                    color: task.tagTextColor,
+                                                  ),
+                                                  label: Text(
+                                                    'View Details',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: task.tagTextColor,
+                                                    ),
+                                                  ),
+                                                  style: TextButton.styleFrom(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    backgroundColor: task.tagColor.withOpacity(0.5),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),

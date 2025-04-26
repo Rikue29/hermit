@@ -36,11 +36,11 @@ class _CommunityPageState extends State<CommunityPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          'Community',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
+        title: const Text('Community',style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),),
         backgroundColor: Colors.green,
+        leading: null,
+        automaticallyImplyLeading: false,
+        elevation: 0,
         actions: [
           IconButton(
             icon: const Icon(Icons.notifications_outlined, color: Colors.white),

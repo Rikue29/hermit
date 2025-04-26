@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "119234190593",
+    "project_id": "hermit-355f2",
+    "storage_bucket": "hermit-355f2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:119234190593:android:1de2ea8f734cde3fc7cf00",
+        "android_client_info": {
+          "package_name": "com.example.food_waste_reducer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAzxdsnNeWbHP1WGYhO5BoIHUQH8-AutEg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

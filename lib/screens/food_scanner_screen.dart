@@ -1068,31 +1068,53 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: color.withOpacity(0.05),
-                                          borderRadius:
-                                              const BorderRadius.vertical(
+                                          borderRadius: const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            if (suggestion.location !=
-                                                null) ...[
+                                            // Description container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'About this Recipe',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.grey[800],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    suggestion.description,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      height: 1.5,
+                                                      color: Colors.grey[700],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            if (suggestion.location != null) ...[
                                               Container(
-                                                padding: const EdgeInsets.all(
-                                                  12,
-                                                ),
+                                                padding: const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(
-                                                    8,
-                                                  ),
-                                                  border: Border.all(
-                                                    color:
-                                                        color.withOpacity(0.2),
-                                                  ),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.grey.shade200),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -1100,39 +1122,25 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                       Icons.location_on,
                                                       size: 20,
                                                     ),
-                                                    const SizedBox(
-                                                      width: 8,
-                                                    ),
+                                                    const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
                                                           const Text(
                                                             'Where to go:',
                                                             style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
+                                                              fontWeight: FontWeight.w500,
                                                               fontSize: 12,
-                                                              color:
-                                                                  Colors.grey,
+                                                              color: Colors.grey,
                                                             ),
                                                           ),
-                                                          const SizedBox(
-                                                            height: 4,
-                                                          ),
+                                                          const SizedBox(height: 4),
                                                           Text(
-                                                            suggestion
-                                                                .location!,
-                                                            style:
-                                                                const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight
-                                                                      .w500,
-                                                              color: Colors
-                                                                  .black87,
+                                                            suggestion.location!,
+                                                            style: const TextStyle(
+                                                              fontWeight: FontWeight.w500,
+                                                              color: Colors.black87,
                                                             ),
                                                           ),
                                                         ],
@@ -1153,20 +1161,11 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             ),
                                             const SizedBox(height: 8),
                                             Container(
-                                              padding: const EdgeInsets.all(
-                                                12,
-                                              ),
+                                              padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius:
-                                                    BorderRadius.circular(
-                                                  8,
-                                                ),
-                                                border: Border.all(
-                                                  color: color.withOpacity(
-                                                    0.2,
-                                                  ),
-                                                ),
+                                                borderRadius: BorderRadius.circular(8),
+                                                border: Border.all(color: Colors.grey.shade200),
                                               ),
                                               child: Row(
                                                 children: [
@@ -1194,42 +1193,28 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             ...suggestion.steps
                                                 .asMap()
                                                 .entries
-                                                .map((
-                                              entry,
-                                            ) {
+                                                .map((entry) {
                                               return Padding(
                                                 padding: const EdgeInsets.only(
                                                   bottom: 12,
                                                 ),
                                                 child: Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Container(
                                                       width: 24,
                                                       height: 24,
-                                                      margin:
-                                                          const EdgeInsets.only(
-                                                        right: 8,
-                                                      ),
+                                                      margin: const EdgeInsets.only(right: 8),
                                                       decoration: BoxDecoration(
-                                                        color:
-                                                            color.withOpacity(
-                                                          0.1,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius
-                                                                .circular(
-                                                          12,
-                                                        ),
+                                                        color: color.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(12),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '${entry.key + 1}',
                                                           style: TextStyle(
                                                             color: color,
-                                                            fontWeight:
-                                                                FontWeight.bold,
+                                                            fontWeight: FontWeight.bold,
                                                             fontSize: 12,
                                                           ),
                                                         ),
@@ -1238,9 +1223,9 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     Expanded(
                                                       child: Text(
                                                         entry.value,
-                                                        style: Theme.of(
-                                                          context,
-                                                        ).textTheme.bodyMedium,
+                                                        style: const TextStyle(
+                                                          height: 1.4,
+                                                        ),
                                                       ),
                                                     ),
                                                   ],
@@ -1264,6 +1249,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
+                                              // Navigate back to homepage
+                                              Navigator.of(context).popUntil((route) => route.isFirst);
                                             }
                                           },
                                           icon: const Icon(Icons.add_task),
@@ -1432,48 +1419,13 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         fontSize: 16,
                                       ),
                                     ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    subtitle: Row(
                                       children: [
-                                        const SizedBox(height: 4),
+                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          recipe.description,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.timer,
-                                                  recipe.prepTime,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.local_fire_department,
-                                                  recipe.cookTime,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.people,
-                                                  recipe.servings,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          recipe.prepTime,
+                                          style: TextStyle(color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -1483,179 +1435,240 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[50],
-                                          borderRadius:
-                                              const BorderRadius.vertical(
+                                          borderRadius: const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Theme(
-                                              data: Theme.of(
-                                                context,
-                                              ).copyWith(
-                                                dividerColor:
-                                                    Colors.transparent,
+                                            // Description container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
                                               ),
-                                              child: ExpansionTile(
-                                                tilePadding: EdgeInsets.zero,
-                                                title: const Text(
-                                                  'Ingredients',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                initiallyExpanded: false,
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
                                                 children: [
-                                                  ListView.builder(
-                                                    shrinkWrap: true,
-                                                    physics:
-                                                        const NeverScrollableScrollPhysics(),
-                                                    itemCount: recipe
-                                                        .ingredients.length,
-                                                    itemBuilder: (
-                                                      context,
-                                                      index,
-                                                    ) {
-                                                      return Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                          bottom: 4,
-                                                        ),
-                                                        child: Row(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            const Icon(
-                                                              Icons
-                                                                  .fiber_manual_record,
-                                                              size: 8,
-                                                            ),
-                                                            const SizedBox(
-                                                              width: 8,
-                                                            ),
-                                                            Expanded(
-                                                              child: Text(
-                                                                recipe.ingredients[
-                                                                    index],
-                                                                style:
-                                                                    const TextStyle(
-                                                                  height: 1.4,
-                                                                ),
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    },
+                                                  Text(
+                                                    'About this Recipe',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.grey[800],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    recipe.description,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      height: 1.5,
+                                                      color: Colors.grey[700],
+                                                    ),
                                                   ),
                                                 ],
                                               ),
                                             ),
-                                            const SizedBox(height: 16),
-                                            Theme(
-                                              data: Theme.of(
-                                                context,
-                                              ).copyWith(
-                                                dividerColor:
-                                                    Colors.transparent,
+
+                                            // Info chips container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
                                               ),
-                                              child: ExpansionTile(
-                                                tilePadding: EdgeInsets.zero,
-                                                title: const Text(
-                                                  'Instructions',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                initiallyExpanded: false,
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                 children: [
-                                                  ListView.builder(
-                                                    shrinkWrap: true,
-                                                    physics:
-                                                        const NeverScrollableScrollPhysics(),
-                                                    itemCount:
-                                                        recipe.steps.length,
-                                                    itemBuilder: (
-                                                      context,
-                                                      index,
-                                                    ) {
-                                                      return Padding(
-                                                        padding:
-                                                            const EdgeInsets
-                                                                .only(
-                                                          bottom: 12,
-                                                        ),
-                                                        child: Row(
-                                                          crossAxisAlignment:
-                                                              CrossAxisAlignment
-                                                                  .start,
-                                                          children: [
-                                                            Container(
-                                                              width: 24,
-                                                              height: 24,
-                                                              margin:
-                                                                  const EdgeInsets
-                                                                      .only(
-                                                                right: 8,
-                                                              ),
-                                                              decoration:
-                                                                  BoxDecoration(
-                                                                color: Theme.of(
-                                                                  context,
-                                                                )
-                                                                    .primaryColor
-                                                                    .withOpacity(
-                                                                      0.1,
-                                                                    ),
-                                                                borderRadius:
-                                                                    BorderRadius
-                                                                        .circular(
-                                                                  12,
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.timer,
+                                                      recipe.prepTime,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.local_fire_department,
+                                                      recipe.cookTime,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.people,
+                                                      recipe.servings,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            // Collapsible Ingredients Section
+                                            Container(
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Theme(
+                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                child: ExpansionTile(
+                                                  title: const Text(
+                                                    'Ingredients',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                  leading: const Icon(Icons.shopping_basket),
+                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  children: [
+                                                    ListView.builder(
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe.ingredients.length,
+                                                      itemBuilder: (context, index) {
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(bottom: 8),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                width: 6,
+                                                                height: 6,
+                                                                margin: const EdgeInsets.only(top: 8, right: 12),
+                                                                decoration: BoxDecoration(
+                                                                  color: Theme.of(context).primaryColor,
+                                                                  shape: BoxShape.circle,
                                                                 ),
                                                               ),
-                                                              child: Center(
+                                                              Expanded(
                                                                 child: Text(
-                                                                  '${index + 1}',
-                                                                  style:
-                                                                      TextStyle(
-                                                                    color: Theme
-                                                                        .of(
-                                                                      context,
-                                                                    ).primaryColor,
-                                                                    fontWeight:
-                                                                        FontWeight
-                                                                            .bold,
-                                                                    fontSize:
-                                                                        12,
+                                                                  recipe.ingredients[index],
+                                                                  style: const TextStyle(
+                                                                    fontSize: 15,
+                                                                    height: 1.4,
                                                                   ),
                                                                 ),
                                                               ),
-                                                            ),
-                                                            Expanded(
-                                                              child: Text(
-                                                                recipe.steps[
-                                                                    index],
-                                                                style:
-                                                                    const TextStyle(
-                                                                  height: 1.4,
-                                                                ),
-                                                                softWrap: true,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      );
-                                                    },
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                            // Collapsible Instructions Section
+                                            Container(
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Theme(
+                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                child: ExpansionTile(
+                                                  title: const Text(
+                                                    'Instructions',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 16,
+                                                    ),
                                                   ),
-                                                ],
+                                                  leading: const Icon(Icons.format_list_numbered),
+                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  children: [
+                                                    ListView.builder(
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe.steps.length,
+                                                      itemBuilder: (context, index) {
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(bottom: 16),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                width: 24,
+                                                                height: 24,
+                                                                margin: const EdgeInsets.only(right: 12),
+                                                                decoration: BoxDecoration(
+                                                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                                                  borderRadius: BorderRadius.circular(12),
+                                                                ),
+                                                                child: Center(
+                                                                  child: Text(
+                                                                    '${index + 1}',
+                                                                    style: TextStyle(
+                                                                      color: Theme.of(context).primaryColor,
+                                                                      fontWeight: FontWeight.bold,
+                                                                      fontSize: 12,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  recipe.steps[index],
+                                                                  style: const TextStyle(
+                                                                    fontSize: 15,
+                                                                    height: 1.4,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+
+                                            // Add to Tasks button
+                                            Center(
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                  if (widget.onAddRecipeTask != null) {
+                                                    widget.onAddRecipeTask!(recipe);
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Added "${recipe.name}" to tasks'),
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    );
+                                                    // Navigate back to homepage
+                                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.add_task),
+                                                label: const Text('Add to Tasks'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(30),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ],
@@ -1681,29 +1694,32 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
   Widget _buildInfoChip(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 16, color: Colors.grey[600]),
-          const SizedBox(width: 4),
-          Flexible(
-            child: Text(
-              label,
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
+          Icon(icon, size: 20, color: Colors.grey[700]),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[800],
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -1954,48 +1970,13 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         fontSize: 16,
                                       ),
                                     ),
-                                    subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                    subtitle: Row(
                                       children: [
-                                        const SizedBox(height: 4),
+                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                                        const SizedBox(width: 4),
                                         Text(
-                                          recipe.description,
-                                          style: TextStyle(
-                                            color: Colors.grey[600],
-                                            fontSize: 14,
-                                          ),
-                                          maxLines: 2,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                            children: [
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.timer,
-                                                  recipe.prepTime,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.local_fire_department,
-                                                  recipe.cookTime,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Expanded(
-                                                child: _buildInfoChip(
-                                                  Icons.people,
-                                                  recipe.servings,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                          recipe.prepTime,
+                                          style: TextStyle(color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -2003,100 +1984,212 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       Container(
                                         padding: const EdgeInsets.all(16),
                                         width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius: const BorderRadius.vertical(
+                                            bottom: Radius.circular(12),
+                                          ),
+                                        ),
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            const Text(
-                                              'Ingredients',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
+                                            // Description container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'About this Recipe',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.grey[800],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    recipe.description,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      height: 1.5,
+                                                      color: Colors.grey[700],
+                                                    ),
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            ...recipe.ingredients.map(
-                                              (ingredient) => Padding(
-                                                padding: const EdgeInsets.only(
-                                                  bottom: 4,
-                                                ),
-                                                child: Row(
-                                                  children: [
-                                                    const Icon(
-                                                      Icons.fiber_manual_record,
-                                                      size: 8,
+
+                                            // Info chips container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                children: [
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.timer,
+                                                      recipe.prepTime,
                                                     ),
-                                                    const SizedBox(width: 8),
-                                                    Expanded(
-                                                      child: Text(ingredient),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.local_fire_department,
+                                                      recipe.cookTime,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: _buildInfoChip(
+                                                      Icons.people,
+                                                      recipe.servings,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
+                                            // Collapsible Ingredients Section
+                                            Container(
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Theme(
+                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                child: ExpansionTile(
+                                                  title: const Text(
+                                                    'Ingredients',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                  leading: const Icon(Icons.shopping_basket),
+                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  children: [
+                                                    ListView.builder(
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe.ingredients.length,
+                                                      itemBuilder: (context, index) {
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(bottom: 8),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                width: 6,
+                                                                height: 6,
+                                                                margin: const EdgeInsets.only(top: 8, right: 12),
+                                                                decoration: BoxDecoration(
+                                                                  color: Theme.of(context).primaryColor,
+                                                                  shape: BoxShape.circle,
+                                                                ),
+                                                              ),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  recipe.ingredients[index],
+                                                                  style: const TextStyle(
+                                                                    fontSize: 15,
+                                                                    height: 1.4,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
                                                     ),
                                                   ],
                                                 ),
                                               ),
                                             ),
-                                            const SizedBox(height: 16),
-                                            const Text(
-                                              'Instructions',
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.w600,
-                                                fontSize: 16,
+
+                                            // Collapsible Instructions Section
+                                            Container(
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Theme(
+                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                child: ExpansionTile(
+                                                  title: const Text(
+                                                    'Instructions',
+                                                    style: TextStyle(
+                                                      fontWeight: FontWeight.w600,
+                                                      fontSize: 16,
+                                                    ),
+                                                  ),
+                                                  leading: const Icon(Icons.format_list_numbered),
+                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  children: [
+                                                    ListView.builder(
+                                                      shrinkWrap: true,
+                                                      physics: const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe.steps.length,
+                                                      itemBuilder: (context, index) {
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(bottom: 16),
+                                                          child: Row(
+                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            children: [
+                                                              Container(
+                                                                width: 24,
+                                                                height: 24,
+                                                                margin: const EdgeInsets.only(right: 12),
+                                                                decoration: BoxDecoration(
+                                                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
+                                                                  borderRadius: BorderRadius.circular(12),
+                                                                ),
+                                                                child: Center(
+                                                                  child: Text(
+                                                                    '${index + 1}',
+                                                                    style: TextStyle(
+                                                                      color: Theme.of(context).primaryColor,
+                                                                      fontWeight: FontWeight.bold,
+                                                                      fontSize: 12,
+                                                                    ),
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                              Expanded(
+                                                                child: Text(
+                                                                  recipe.steps[index],
+                                                                  style: const TextStyle(
+                                                                    fontSize: 15,
+                                                                    height: 1.4,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        );
+                                                      },
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(height: 8),
-                                            ...recipe.steps.asMap().entries.map(
-                                              (entry) {
-                                                return Padding(
-                                                  padding: const EdgeInsets.only(
-                                                    bottom: 12,
-                                                  ),
-                                                  child: Row(
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment.start,
-                                                    children: [
-                                                      Container(
-                                                        width: 24,
-                                                        height: 24,
-                                                        margin:
-                                                            const EdgeInsets.only(
-                                                          right: 8,
-                                                        ),
-                                                        decoration: BoxDecoration(
-                                                          color: Theme.of(context)
-                                                              .primaryColor
-                                                              .withOpacity(0.1),
-                                                          borderRadius:
-                                                              BorderRadius.circular(
-                                                            12,
-                                                          ),
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            '${entry.key + 1}',
-                                                            style: TextStyle(
-                                                              color: Theme.of(
-                                                                context,
-                                                              ).primaryColor,
-                                                              fontWeight:
-                                                                  FontWeight.bold,
-                                                              fontSize: 12,
-                                                            ),
-                                                          ),
-                                                        ),
-                                                      ),
-                                                      Expanded(
-                                                        child: Text(
-                                                          entry.value,
-                                                          style: const TextStyle(
-                                                            height: 1.4,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                            const SizedBox(height: 16),
+
                                             // Add to Tasks button
                                             Center(
                                               child: ElevatedButton.icon(
@@ -2110,6 +2203,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                         backgroundColor: Colors.green,
                                                       ),
                                                     );
+                                                    // Navigate back to homepage
+                                                    Navigator.of(context).popUntil((route) => route.isFirst);
                                                   }
                                                 },
                                                 icon: const Icon(Icons.add_task),
@@ -2335,19 +2430,48 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
+                                          crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
+                                            // Description container
+                                            Container(
+                                              padding: const EdgeInsets.all(16),
+                                              margin: const EdgeInsets.only(bottom: 16),
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(color: Colors.grey.shade200),
+                                              ),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    'About this Recipe',
+                                                    style: TextStyle(
+                                                      fontSize: 16,
+                                                      fontWeight: FontWeight.w600,
+                                                      color: Colors.grey[800],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+                                                  Text(
+                                                    suggestion.description,
+                                                    style: TextStyle(
+                                                      fontSize: 15,
+                                                      height: 1.5,
+                                                      color: Colors.grey[700],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+
                                             if (suggestion.location != null) ...[
                                               Container(
                                                 padding: const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
-                                                  borderRadius:
-                                                      BorderRadius.circular(8),
-                                                  border: Border.all(
-                                                    color: color.withOpacity(0.2),
-                                                  ),
+                                                  borderRadius: BorderRadius.circular(8),
+                                                  border: Border.all(color: Colors.grey.shade200),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -2358,15 +2482,12 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment:
-                                                            CrossAxisAlignment
-                                                                .start,
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
                                                         children: [
                                                           const Text(
                                                             'Where to go:',
                                                             style: TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight.w500,
+                                                              fontWeight: FontWeight.w500,
                                                               fontSize: 12,
                                                               color: Colors.grey,
                                                             ),
@@ -2375,8 +2496,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                           Text(
                                                             suggestion.location!,
                                                             style: const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight.w500,
+                                                              fontWeight: FontWeight.w500,
                                                               color: Colors.black87,
                                                             ),
                                                           ),
@@ -2406,32 +2526,22 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   bottom: 12,
                                                 ),
                                                 child: Row(
-                                                  crossAxisAlignment:
-                                                      CrossAxisAlignment.start,
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
                                                   children: [
                                                     Container(
                                                       width: 24,
                                                       height: 24,
-                                                      margin:
-                                                          const EdgeInsets.only(
-                                                        right: 8,
-                                                      ),
+                                                      margin: const EdgeInsets.only(right: 8),
                                                       decoration: BoxDecoration(
-                                                        color: color.withOpacity(
-                                                          0.1,
-                                                        ),
-                                                        borderRadius:
-                                                            BorderRadius.circular(
-                                                          12,
-                                                        ),
+                                                        color: color.withOpacity(0.1),
+                                                        borderRadius: BorderRadius.circular(12),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '${entry.key + 1}',
                                                           style: TextStyle(
                                                             color: color,
-                                                            fontWeight:
-                                                                FontWeight.bold,
+                                                            fontWeight: FontWeight.bold,
                                                             fontSize: 12,
                                                           ),
                                                         ),
@@ -2466,6 +2576,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
+                                              // Navigate back to homepage
+                                              Navigator.of(context).popUntil((route) => route.isFirst);
                                             }
                                           },
                                           icon: const Icon(Icons.add_task),

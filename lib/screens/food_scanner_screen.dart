@@ -1412,266 +1412,250 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ExpansionTile(
-                                        leading: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            // Take only first two emojis
-                                            ...recipe.imageEmoji.split(' ').take(2).map(
-                                              (emoji) => Text(
-                                                emoji,
-                                                style: const TextStyle(fontSize: 24),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        title: Text(
-                                          recipe.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
+                                  child: ExpansionTile(
+                                    leading: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Take only first two emojis
+                                        ...recipe.imageEmoji.split(' ').take(2).map(
+                                          (emoji) => Text(
+                                            emoji,
+                                            style: const TextStyle(fontSize: 24),
                                           ),
                                         ),
-                                        subtitle: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              recipe.description,
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(16),
-                                            width: double.infinity,
-                                            decoration: BoxDecoration(
-                                              color: Colors.grey[50],
-                                              borderRadius:
-                                                  const BorderRadius.vertical(
-                                                bottom: Radius.circular(12),
-                                              ),
-                                            ),
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Theme(
-                                                  data: Theme.of(
-                                                    context,
-                                                  ).copyWith(
-                                                    dividerColor:
-                                                        Colors.transparent,
-                                                  ),
-                                                  child: ExpansionTile(
-                                                    tilePadding: EdgeInsets.zero,
-                                                    title: const Text(
-                                                      'Ingredients',
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w600,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                    initiallyExpanded: false,
-                                                    children: [
-                                                      ListView.builder(
-                                                        shrinkWrap: true,
-                                                        physics:
-                                                            const NeverScrollableScrollPhysics(),
-                                                        itemCount: recipe
-                                                            .ingredients.length,
-                                                        itemBuilder: (
-                                                          context,
-                                                          index,
-                                                        ) {
-                                                          return Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                              bottom: 4,
-                                                            ),
-                                                            child: Row(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .fiber_manual_record,
-                                                                  size: 8,
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Expanded(
-                                                                  child: Text(
-                                                                    recipe.ingredients[
-                                                                        index],
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      height: 1.4,
-                                                                    ),
-                                                                    softWrap: true,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 16),
-                                                Theme(
-                                                  data: Theme.of(
-                                                    context,
-                                                  ).copyWith(
-                                                    dividerColor:
-                                                        Colors.transparent,
-                                                  ),
-                                                  child: ExpansionTile(
-                                                    tilePadding: EdgeInsets.zero,
-                                                    title: const Text(
-                                                      'Instructions',
-                                                      style: TextStyle(
-                                                        fontWeight: FontWeight.w600,
-                                                        fontSize: 16,
-                                                      ),
-                                                    ),
-                                                    initiallyExpanded: false,
-                                                    children: [
-                                                      ListView.builder(
-                                                        shrinkWrap: true,
-                                                        physics:
-                                                            const NeverScrollableScrollPhysics(),
-                                                        itemCount:
-                                                            recipe.steps.length,
-                                                        itemBuilder: (
-                                                          context,
-                                                          index,
-                                                        ) {
-                                                          return Padding(
-                                                            padding:
-                                                                const EdgeInsets
-                                                                    .only(
-                                                              bottom: 12,
-                                                            ),
-                                                            child: Row(
-                                                              crossAxisAlignment:
-                                                                  CrossAxisAlignment
-                                                                      .start,
-                                                              children: [
-                                                                Container(
-                                                                  width: 24,
-                                                                  height: 24,
-                                                                  margin:
-                                                                      const EdgeInsets
-                                                                          .only(
-                                                                        right: 8,
-                                                                      ),
-                                                                  decoration:
-                                                                      BoxDecoration(
-                                                                    color: Theme.of(
-                                                                      context,
-                                                                    )
-                                                                        .primaryColor
-                                                                        .withOpacity(
-                                                                          0.1,
-                                                                        ),
-                                                                    borderRadius:
-                                                                        BorderRadius
-                                                                            .circular(
-                                                                          12,
-                                                                        ),
-                                                                  ),
-                                                                  child: Center(
-                                                                    child: Text(
-                                                                      '${index + 1}',
-                                                                      style:
-                                                                          TextStyle(
-                                                                        color: Theme
-                                                                            .of(
-                                                                          context,
-                                                                        ).primaryColor,
-                                                                        fontWeight:
-                                                                            FontWeight
-                                                                                .bold,
-                                                                        fontSize:
-                                                                            12,
-                                                                      ),
-                                                                    ),
-                                                                  ),
-                                                                ),
-                                                                Expanded(
-                                                                  child: Text(
-                                                                    recipe.steps[
-                                                                        index],
-                                                                    style:
-                                                                        const TextStyle(
-                                                                      height: 1.4,
-                                                                    ),
-                                                                    softWrap: true,
-                                                                  ),
-                                                                ),
-                                                              ],
-                                                            ),
-                                                          );
-                                                        },
-                                                      ),
-                                                    ],
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                                      ],
+                                    ),
+                                    title: Text(
+                                      recipe.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
                                       ),
-                                      // Information bar moved outside ExpansionTile
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          recipe.description,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            top: BorderSide(
-                                              color: Colors.grey.shade200,
-                                              width: 1,
-                                            ),
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.timer,
+                                                  recipe.prepTime,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.local_fire_department,
+                                                  recipe.cookTime,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.people,
+                                                  recipe.servings,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      ],
+                                    ),
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey[50],
+                                          borderRadius:
+                                              const BorderRadius.vertical(
+                                            bottom: Radius.circular(12),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.timer,
-                                                recipe.prepTime,
+                                            Theme(
+                                              data: Theme.of(
+                                                context,
+                                              ).copyWith(
+                                                dividerColor:
+                                                    Colors.transparent,
+                                              ),
+                                              child: ExpansionTile(
+                                                tilePadding: EdgeInsets.zero,
+                                                title: const Text(
+                                                  'Ingredients',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                initiallyExpanded: false,
+                                                children: [
+                                                  ListView.builder(
+                                                    shrinkWrap: true,
+                                                    physics:
+                                                        const NeverScrollableScrollPhysics(),
+                                                    itemCount: recipe
+                                                        .ingredients.length,
+                                                    itemBuilder: (
+                                                      context,
+                                                      index,
+                                                    ) {
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          bottom: 4,
+                                                        ),
+                                                        child: Row(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            const Icon(
+                                                              Icons
+                                                                  .fiber_manual_record,
+                                                              size: 8,
+                                                            ),
+                                                            const SizedBox(
+                                                              width: 8,
+                                                            ),
+                                                            Expanded(
+                                                              child: Text(
+                                                                recipe.ingredients[
+                                                                    index],
+                                                                style:
+                                                                    const TextStyle(
+                                                                  height: 1.4,
+                                                                ),
+                                                                softWrap: true,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.local_fire_department,
-                                                recipe.cookTime,
+                                            const SizedBox(height: 16),
+                                            Theme(
+                                              data: Theme.of(
+                                                context,
+                                              ).copyWith(
+                                                dividerColor:
+                                                    Colors.transparent,
                                               ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.people,
-                                                recipe.servings,
+                                              child: ExpansionTile(
+                                                tilePadding: EdgeInsets.zero,
+                                                title: const Text(
+                                                  'Instructions',
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    fontSize: 16,
+                                                  ),
+                                                ),
+                                                initiallyExpanded: false,
+                                                children: [
+                                                  ListView.builder(
+                                                    shrinkWrap: true,
+                                                    physics:
+                                                        const NeverScrollableScrollPhysics(),
+                                                    itemCount:
+                                                        recipe.steps.length,
+                                                    itemBuilder: (
+                                                      context,
+                                                      index,
+                                                    ) {
+                                                      return Padding(
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                          bottom: 12,
+                                                        ),
+                                                        child: Row(
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
+                                                          children: [
+                                                            Container(
+                                                              width: 24,
+                                                              height: 24,
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                right: 8,
+                                                              ),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Theme.of(
+                                                                  context,
+                                                                )
+                                                                    .primaryColor
+                                                                    .withOpacity(
+                                                                      0.1,
+                                                                    ),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                  12,
+                                                                ),
+                                                              ),
+                                                              child: Center(
+                                                                child: Text(
+                                                                  '${index + 1}',
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Theme
+                                                                        .of(
+                                                                      context,
+                                                                    ).primaryColor,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    fontSize:
+                                                                        12,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            Expanded(
+                                                              child: Text(
+                                                                recipe.steps[
+                                                                    index],
+                                                                style:
+                                                                    const TextStyle(
+                                                                  height: 1.4,
+                                                                ),
+                                                                softWrap: true,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      );
+                                                    },
+                                                  ),
+                                                ],
                                               ),
                                             ),
                                           ],
@@ -1696,66 +1680,29 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   Widget _buildInfoChip(IconData icon, String label) {
-    // Extract numeric value and unit, handle empty or zero cases
-    String displayValue = '';
-    String displayUnit = '';
-    
-    if (label.isNotEmpty) {
-      final parts = label.split(' ');
-      displayValue = parts.first;
-      // If the value is missing or 0, show '--'
-      if (displayValue.isEmpty || displayValue == '0') {
-        displayValue = '--';
-      }
-      // Get the unit if it exists
-      if (parts.length > 1) {
-        displayUnit = parts.sublist(1).join(' ');
-      }
-    } else {
-      displayValue = '--';
-    }
-
-    // Map icons to default units if none provided
-    if (displayUnit.isEmpty) {
-      if (icon == Icons.timer || icon == Icons.local_fire_department) {
-        displayUnit = 'mins';
-      } else if (icon == Icons.people) {
-        displayUnit = 'servings';
-      }
-    }
-
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.grey.shade200),
       ),
-      child: Column(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(icon, size: 14, color: Colors.grey[600]),
-              const SizedBox(width: 4),
-              Text(
-                displayValue,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.black87,
-                ),
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
               ),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            displayUnit,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w500,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -1987,120 +1934,197 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      ExpansionTile(
-                                        leading: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            // Take only first two emojis
-                                            ...recipe.imageEmoji.split(' ').take(2).map(
-                                              (emoji) => Text(
-                                                emoji,
-                                                style: const TextStyle(fontSize: 24),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                        title: Text(
-                                          recipe.name,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 16,
+                                  child: ExpansionTile(
+                                    leading: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Take only first two emojis
+                                        ...recipe.imageEmoji.split(' ').take(2).map(
+                                          (emoji) => Text(
+                                            emoji,
+                                            style: const TextStyle(fontSize: 24),
                                           ),
                                         ),
-                                        subtitle: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              recipe.description,
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
-                                              maxLines: 2,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                          ],
-                                        ),
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(16),
-                                            width: double.infinity,
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                const Text(
-                                                  'Ingredients',
-                                                  style: TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                    fontSize: 16,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 8),
-                                                ...recipe.ingredients.map(
-                                                  (ingredient) => Padding(
-                                                    padding: const EdgeInsets.only(
-                                                      bottom: 4,
-                                                    ),
-                                                    child: Row(
-                                                      children: [
-                                                        const Icon(
-                                                          Icons.fiber_manual_record,
-                                                          size: 8,
-                                                        ),
-                                                        const SizedBox(width: 8),
-                                                        Expanded(
-                                                          child: Text(ingredient),
-                                                        ),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                        ],
+                                      ],
+                                    ),
+                                    title: Text(
+                                      recipe.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
                                       ),
-                                      // Information bar moved outside ExpansionTile
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 16,
-                                          vertical: 12,
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          recipe.description,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                        decoration: BoxDecoration(
-                                          border: Border(
-                                            top: BorderSide(
-                                              color: Colors.grey.shade200,
-                                              width: 1,
-                                            ),
+                                        const SizedBox(height: 8),
+                                        Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                            children: [
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.timer,
+                                                  recipe.prepTime,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.local_fire_department,
+                                                  recipe.cookTime,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Expanded(
+                                                child: _buildInfoChip(
+                                                  Icons.people,
+                                                  recipe.servings,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
-                                        child: Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                      ],
+                                    ),
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        width: double.infinity,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.timer,
-                                                recipe.prepTime,
+                                            const Text(
+                                              'Ingredients',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.local_fire_department,
-                                                recipe.cookTime,
+                                            const SizedBox(height: 8),
+                                            ...recipe.ingredients.map(
+                                              (ingredient) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 4,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.fiber_manual_record,
+                                                      size: 8,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(ingredient),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
-                                            const SizedBox(width: 8),
-                                            Expanded(
-                                              child: _buildInfoChip(
-                                                Icons.people,
-                                                recipe.servings,
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Instructions',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ...recipe.steps.asMap().entries.map(
+                                              (entry) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(
+                                                    bottom: 12,
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      Container(
+                                                        width: 24,
+                                                        height: 24,
+                                                        margin:
+                                                            const EdgeInsets.only(
+                                                          right: 8,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: Theme.of(context)
+                                                              .primaryColor
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            '${entry.key + 1}',
+                                                            style: TextStyle(
+                                                              color: Theme.of(
+                                                                context,
+                                                              ).primaryColor,
+                                                              fontWeight:
+                                                                  FontWeight.bold,
+                                                              fontSize: 12,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Expanded(
+                                                        child: Text(
+                                                          entry.value,
+                                                          style: const TextStyle(
+                                                            height: 1.4,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                            const SizedBox(height: 16),
+                                            // Add to Tasks button
+                                            Center(
+                                              child: ElevatedButton.icon(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                  if (widget.onAddRecipeTask != null) {
+                                                    widget.onAddRecipeTask!(recipe);
+                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                      SnackBar(
+                                                        content: Text('Added "${recipe.name}" to tasks'),
+                                                        backgroundColor: Colors.green,
+                                                      ),
+                                                    );
+                                                  }
+                                                },
+                                                icon: const Icon(Icons.add_task),
+                                                label: const Text('Add to Tasks'),
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  foregroundColor: Colors.white,
+                                                  padding: const EdgeInsets.symmetric(
+                                                    horizontal: 24,
+                                                    vertical: 12,
+                                                  ),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(30),
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ],

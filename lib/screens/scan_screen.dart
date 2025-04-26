@@ -8,6 +8,8 @@ import '../services/env_service.dart';
 import '../models/food_item.dart';
 import '../services/waste_management_service.dart';
 import '../services/recipe_service.dart';
+import 'package:image_picker/image_picker.dart';
+import '../models/food_detection.dart';
 
 class RecentScan {
   final String foodItem;
@@ -16,14 +18,14 @@ class RecentScan {
   RecentScan({required this.foodItem, required this.timestamp});
 
   Map<String, dynamic> toJson() => {
-    'foodItem': foodItem,
-    'timestamp': timestamp.toIso8601String(),
-  };
+        'foodItem': foodItem,
+        'timestamp': timestamp.toIso8601String(),
+      };
 
   factory RecentScan.fromJson(Map<String, dynamic> json) => RecentScan(
-    foodItem: json['foodItem'],
-    timestamp: DateTime.parse(json['timestamp']),
-  );
+        foodItem: json['foodItem'],
+        timestamp: DateTime.parse(json['timestamp']),
+      );
 }
 
 class FoodAnalysisResult {
@@ -49,20 +51,27 @@ class ScanScreen extends StatefulWidget {
   State<ScanScreen> createState() => _ScanScreenState();
 }
 
-class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateMixin {
-  final DraggableScrollableController _controller = DraggableScrollableController();
+class _ScanScreenState extends State<ScanScreen>
+    with SingleTickerProviderStateMixin {
+  final DraggableScrollableController _controller =
+      DraggableScrollableController();
   late FoodAnalysisService _foodAnalysisService;
   late FoodCarbonService _foodCarbonService;
   late AnimationController _animationController;
   late SharedPreferences _prefs;
-  
+  final FoodDetector _detector = FoodDetector();
+  final ImagePicker _picker = ImagePicker();
+
   FoodInformation? _selectedFoodInfo;
   List<RecentScan> _recentScans = [];
   bool _isLoading = false;
   bool _isInitialized = false;
   String? _initError;
   Map<String, bool> _sectionLoading = {};
-  int _currentIndex = 1;
+  XFile? _imageFile;
+  List<DetectionResult> _detections = [];
+  TextEditingController _detectionController = TextEditingController();
+  String? _errorMessage; // Stores any error messages
 
   @override
   void initState() {
@@ -72,6 +81,36 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       vsync: this,
     );
     _initializeServices();
+    _loadDummyScans(); // Load dummy scans initially
+  }
+
+  void _loadDummyScans() {
+    final dummyScans = [
+      RecentScan(
+        foodItem: 'Apples',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
+      ),
+      RecentScan(
+        foodItem: 'Oranges',
+        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      RecentScan(
+        foodItem: 'Bananas',
+        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
+      ),
+      RecentScan(
+        foodItem: 'Grapes',
+        timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      RecentScan(
+        foodItem: 'Pears',
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+    ];
+
+    setState(() {
+      _recentScans = dummyScans;
+    });
   }
 
   Future<void> _initializeServices() async {
@@ -79,10 +118,11 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       if (EnvService.geminiApiKey.isEmpty) {
         throw Exception('Gemini API key not found in environment variables');
       }
-      _foodAnalysisService = FoodAnalysisService(apiKey: EnvService.geminiApiKey);
+      _foodAnalysisService =
+          FoodAnalysisService(apiKey: EnvService.geminiApiKey);
       _foodCarbonService = FoodCarbonService(apiKey: EnvService.geminiApiKey);
       _prefs = await SharedPreferences.getInstance();
-      
+
       // Check if this is the first run
       final isFirstRun = _prefs.getBool('is_first_run') ?? true;
       if (isFirstRun) {
@@ -155,12 +195,90 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
     setState(() => _recentScans.clear());
   }
 
+  Future<void> _startScanning() async {
+    // Prevent multiple concurrent operations
+    if (_isLoading) return;
+
+    try {
+      // Clear previous state before picking
+      setState(() {
+        _imageFile = null;
+        _detections = [];
+        _errorMessage = null;
+        // Keep _isLoading false until image is actually picked
+      });
+
+      // Pick an image using the image_picker plugin
+      final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+      // If the user picked an image (didn't cancel)
+      if (image != null) {
+        setState(() {
+          _imageFile = image; // Store the selected image file
+          _isLoading = true; // Show loading indicator
+          _errorMessage = null; // Clear previous error
+          _detections = []; // Clear previous results
+        });
+
+        // Call the food detection method from our FoodDetector class
+        try {
+          print("Calling detectFoodItems with path: \${image.path}");
+          final results = await _detector.detectFoodItems(image.path);
+
+          // Update state with results or empty message
+          setState(() {
+            _detections = results;
+            _isLoading = false; // Hide loading indicator
+            if (results.isEmpty) {
+              print("No items detected by the API.");
+              // Set a message if no items were found, but no error occurred
+              // _errorMessage = "No food items detected.";
+            } else {
+              // Set the detection text for editing
+              _detectionController.text =
+                  results.map((e) => e.className).join(', ');
+
+              // Add the detected items to recent scans
+              for (var result in results) {
+                _recentScans.insert(
+                    0,
+                    RecentScan(
+                      foodItem: result.className,
+                      timestamp: DateTime.now(),
+                    ));
+              }
+            }
+          });
+        } catch (e) {
+          // Handle errors specifically from the API call
+          print("Error caught during detection: \${e}");
+          setState(() {
+            _errorMessage = "Error detecting food: \${e.toString()}";
+            _isLoading = false; // Hide loading indicator
+          });
+        }
+      } else {
+        // User cancelled the image picker
+        print("Image selection cancelled.");
+        // Optionally reset state if needed, but often just doing nothing is fine
+        // setState(() { _isLoading = false; });
+      }
+    } catch (e) {
+      // Handle potential errors from the image picker itself (e.g., permissions)
+      print("Error picking image: \${e}");
+      setState(() {
+        _errorMessage = "Error selecting image: \${e.toString()}";
+        _isLoading = false; // Ensure loading is off if picker fails
+      });
+    }
+  }
+
   Future<void> _showFoodDetails(String foodItem) async {
     setState(() => _isLoading = true);
-    
+
     try {
       await _saveRecentScan(foodItem);
-      
+
       setState(() {
         _sectionLoading = {
           'storage': true,
@@ -171,7 +289,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
 
       final foodInfo = await _foodAnalysisService.getFoodInformation(foodItem);
       setState(() => _selectedFoodInfo = foodInfo);
-      
+
       await showDialog(
         context: context,
         builder: (context) => _buildFoodDetailsDialog(foodItem, foodInfo),
@@ -243,7 +361,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
         final carbonData = snapshot.data!;
 
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -388,38 +507,40 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                           ),
                           const SizedBox(height: 12),
                           ...carbonData.storageTips.map((tip) => Padding(
-                            padding: const EdgeInsets.only(bottom: 8),
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Icon(
-                                  Icons.check_circle,
-                                  color: Colors.green,
-                                  size: 20,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    tip,
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      height: 1.4,
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle,
+                                      color: Colors.green,
+                                      size: 20,
                                     ),
-                                  ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        tip,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          )),
+                              )),
                         ],
                       ),
                     ),
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   decoration: BoxDecoration(
                     color: Colors.white,
-                    borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+                    borderRadius: const BorderRadius.vertical(
+                        bottom: Radius.circular(16)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -793,10 +914,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                     ),
                     const SizedBox(height: 32),
                     ElevatedButton(
-                      onPressed: () {
-                        // TODO: Implement camera scanning
-                        _showFoodDetails('Apple');
-                      },
+                      onPressed: _startScanning,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 32,
@@ -904,9 +1022,11 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
     super.dispose();
   }
 
-  Future<void> _showWasteManagementDialog(String foodItem, FoodCarbonData carbonData) async {
-    final wasteService = WasteManagementService(apiKey: EnvService.geminiApiKey);
-    
+  Future<void> _showWasteManagementDialog(
+      String foodItem, FoodCarbonData carbonData) async {
+    final wasteService =
+        WasteManagementService(apiKey: EnvService.geminiApiKey);
+
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -915,7 +1035,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
             future: wasteService.getSustainableSuggestions(foodItem),
             builder: (context, snapshot) {
               return Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 child: Container(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -928,7 +1049,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16)),
                         ),
                         child: Row(
                           children: [
@@ -964,7 +1086,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                              const Icon(Icons.error_outline,
+                                  color: Colors.red, size: 48),
                               const SizedBox(height: 16),
                               Text(
                                 'Error: ${snapshot.error}',
@@ -975,7 +1098,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                               ElevatedButton(
                                 onPressed: () {
                                   Navigator.of(context).pop();
-                                  _showWasteManagementDialog(foodItem, carbonData);
+                                  _showWasteManagementDialog(
+                                      foodItem, carbonData);
                                 },
                                 child: const Text('Try Again'),
                               ),
@@ -994,7 +1118,10 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                             children: [
                               Text(
                                 'For: $foodItem',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       color: Colors.grey[600],
                                     ),
                               ),
@@ -1028,7 +1155,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
 
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     side: BorderSide(
@@ -1050,7 +1178,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                     ),
                                     subtitle: Row(
                                       children: [
-                                        Icon(categoryIcon, size: 16, color: color),
+                                        Icon(categoryIcon,
+                                            size: 16, color: color),
                                         const SizedBox(width: 4),
                                         Text(
                                           suggestion.category,
@@ -1061,7 +1190,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                           ),
                                         ),
                                         const SizedBox(width: 8),
-                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                                        Icon(Icons.timer_outlined,
+                                            size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
                                           timeEstimate,
@@ -1078,43 +1208,63 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: color.withOpacity(0.05),
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
-                                            if (suggestion.location != null) ...[
+                                            if (suggestion.location !=
+                                                null) ...[
                                               Container(
-                                                padding: const EdgeInsets.all(12),
+                                                padding:
+                                                    const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: color.withOpacity(0.2)),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color: color
+                                                          .withOpacity(0.2)),
                                                 ),
                                                 child: Row(
                                                   children: [
-                                                    const Icon(Icons.location_on, size: 20),
+                                                    const Icon(
+                                                        Icons.location_on,
+                                                        size: 20),
                                                     const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
                                                           const Text(
                                                             'Where to go:',
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.w500,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
                                                               fontSize: 12,
-                                                              color: Colors.grey,
+                                                              color:
+                                                                  Colors.grey,
                                                             ),
                                                           ),
-                                                          const SizedBox(height: 4),
+                                                          const SizedBox(
+                                                              height: 4),
                                                           Text(
-                                                            suggestion.location!,
-                                                            style: const TextStyle(
-                                                              fontWeight: FontWeight.w500,
-                                                              color: Colors.black87,
+                                                            suggestion
+                                                                .location!,
+                                                            style:
+                                                                const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: Colors
+                                                                  .black87,
                                                             ),
                                                           ),
                                                         ],
@@ -1138,14 +1288,19 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: color.withOpacity(0.2)),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                    color:
+                                                        color.withOpacity(0.2)),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  Icon(Icons.home, color: color),
+                                                  Icon(Icons.home,
+                                                      color: color),
                                                   const SizedBox(width: 8),
-                                                  const Text('Common household items'),
+                                                  const Text(
+                                                      'Common household items'),
                                                 ],
                                               ),
                                             ),
@@ -1159,26 +1314,37 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                               ),
                                             ),
                                             const SizedBox(height: 8),
-                                            ...suggestion.steps.asMap().entries.map((entry) {
+                                            ...suggestion.steps
+                                                .asMap()
+                                                .entries
+                                                .map((entry) {
                                               return Padding(
-                                                padding: const EdgeInsets.only(bottom: 12),
+                                                padding: const EdgeInsets.only(
+                                                    bottom: 12),
                                                 child: Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Container(
                                                       width: 24,
                                                       height: 24,
-                                                      margin: const EdgeInsets.only(right: 8),
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                              right: 8),
                                                       decoration: BoxDecoration(
-                                                        color: color.withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        color: color
+                                                            .withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '${entry.key + 1}',
                                                           style: TextStyle(
                                                             color: color,
-                                                            fontWeight: FontWeight.bold,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                             fontSize: 12,
                                                           ),
                                                         ),
@@ -1187,7 +1353,9 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                                     Expanded(
                                                       child: Text(
                                                         entry.value,
-                                                        style: Theme.of(context).textTheme.bodyMedium,
+                                                        style: Theme.of(context)
+                                                            .textTheme
+                                                            .bodyMedium,
                                                       ),
                                                     ),
                                                   ],
@@ -1217,7 +1385,7 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
 
   Future<void> _showRecipeSuggestionsDialog(String foodItem) async {
     final recipeService = RecipeService(apiKey: EnvService.geminiApiKey);
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) => StatefulBuilder(
@@ -1226,7 +1394,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
             future: recipeService.getRecipeSuggestions(foodItem),
             builder: (context, snapshot) {
               return Dialog(
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16)),
                 child: Container(
                   constraints: BoxConstraints(
                     maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -1239,7 +1408,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
                           color: Theme.of(context).colorScheme.primaryContainer,
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+                          borderRadius: const BorderRadius.vertical(
+                              top: Radius.circular(16)),
                         ),
                         child: Row(
                           children: [
@@ -1275,7 +1445,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+                              const Icon(Icons.error_outline,
+                                  color: Colors.red, size: 48),
                               const SizedBox(height: 16),
                               Text(
                                 'Error: ${snapshot.error}',
@@ -1305,21 +1476,26 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                             children: [
                               Text(
                                 'Recipes for: $foodItem',
-                                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(
                                       color: Colors.grey[600],
                                     ),
                               ),
                               const SizedBox(height: 16),
                               ...snapshot.data!.map((recipe) {
                                 final Color difficultyColor = {
-                                  'Easy': Colors.green,
-                                  'Medium': Colors.orange,
-                                  'Hard': Colors.red,
-                                }[recipe.difficulty] ?? Colors.grey;
+                                      'Easy': Colors.green,
+                                      'Medium': Colors.orange,
+                                      'Hard': Colors.red,
+                                    }[recipe.difficulty] ??
+                                    Colors.grey;
 
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -1336,7 +1512,8 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                       ),
                                     ),
                                     subtitle: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         const SizedBox(height: 4),
                                         Text(
@@ -1350,24 +1527,37 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                         ),
                                         const SizedBox(height: 8),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.spaceEvenly,
                                           children: [
                                             Expanded(
                                               child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                child: _buildInfoChip(Icons.timer, recipe.prepTime),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4),
+                                                child: _buildInfoChip(
+                                                    Icons.timer,
+                                                    recipe.prepTime),
                                               ),
                                             ),
                                             Expanded(
                                               child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                child: _buildInfoChip(Icons.local_fire_department, recipe.cookTime),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4),
+                                                child: _buildInfoChip(
+                                                    Icons.local_fire_department,
+                                                    recipe.cookTime),
                                               ),
                                             ),
                                             Expanded(
                                               child: Padding(
-                                                padding: const EdgeInsets.symmetric(horizontal: 4),
-                                                child: _buildInfoChip(Icons.people, recipe.servings),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                        horizontal: 4),
+                                                child: _buildInfoChip(
+                                                    Icons.people,
+                                                    recipe.servings),
                                               ),
                                             ),
                                           ],
@@ -1380,15 +1570,19 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[50],
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             Theme(
-                                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                              data: Theme.of(context).copyWith(
+                                                  dividerColor:
+                                                      Colors.transparent),
                                               child: ExpansionTile(
                                                 tilePadding: EdgeInsets.zero,
                                                 title: const Text(
@@ -1402,20 +1596,36 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                                 children: [
                                                   ListView.builder(
                                                     shrinkWrap: true,
-                                                    physics: const NeverScrollableScrollPhysics(),
-                                                    itemCount: recipe.ingredients.length,
-                                                    itemBuilder: (context, index) {
+                                                    physics:
+                                                        const NeverScrollableScrollPhysics(),
+                                                    itemCount: recipe
+                                                        .ingredients.length,
+                                                    itemBuilder:
+                                                        (context, index) {
                                                       return Padding(
-                                                        padding: const EdgeInsets.only(bottom: 4),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                bottom: 4),
                                                         child: Row(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
                                                           children: [
-                                                            const Icon(Icons.fiber_manual_record, size: 8),
-                                                            const SizedBox(width: 8),
+                                                            const Icon(
+                                                                Icons
+                                                                    .fiber_manual_record,
+                                                                size: 8),
+                                                            const SizedBox(
+                                                                width: 8),
                                                             Expanded(
                                                               child: Text(
-                                                                recipe.ingredients[index],
-                                                                style: const TextStyle(height: 1.4),
+                                                                recipe.ingredients[
+                                                                    index],
+                                                                style:
+                                                                    const TextStyle(
+                                                                        height:
+                                                                            1.4),
                                                                 softWrap: true,
                                                               ),
                                                             ),
@@ -1429,7 +1639,9 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                             ),
                                             const SizedBox(height: 16),
                                             Theme(
-                                              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                              data: Theme.of(context).copyWith(
+                                                  dividerColor:
+                                                      Colors.transparent),
                                               child: ExpansionTile(
                                                 tilePadding: EdgeInsets.zero,
                                                 title: const Text(
@@ -1443,37 +1655,66 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
                                                 children: [
                                                   ListView.builder(
                                                     shrinkWrap: true,
-                                                    physics: const NeverScrollableScrollPhysics(),
-                                                    itemCount: recipe.steps.length,
-                                                    itemBuilder: (context, index) {
+                                                    physics:
+                                                        const NeverScrollableScrollPhysics(),
+                                                    itemCount:
+                                                        recipe.steps.length,
+                                                    itemBuilder:
+                                                        (context, index) {
                                                       return Padding(
-                                                        padding: const EdgeInsets.only(bottom: 12),
+                                                        padding:
+                                                            const EdgeInsets
+                                                                .only(
+                                                                bottom: 12),
                                                         child: Row(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          crossAxisAlignment:
+                                                              CrossAxisAlignment
+                                                                  .start,
                                                           children: [
                                                             Container(
                                                               width: 24,
                                                               height: 24,
-                                                              margin: const EdgeInsets.only(right: 8),
-                                                              decoration: BoxDecoration(
-                                                                color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                                                borderRadius: BorderRadius.circular(12),
+                                                              margin:
+                                                                  const EdgeInsets
+                                                                      .only(
+                                                                      right: 8),
+                                                              decoration:
+                                                                  BoxDecoration(
+                                                                color: Theme.of(
+                                                                        context)
+                                                                    .primaryColor
+                                                                    .withOpacity(
+                                                                        0.1),
+                                                                borderRadius:
+                                                                    BorderRadius
+                                                                        .circular(
+                                                                            12),
                                                               ),
                                                               child: Center(
                                                                 child: Text(
                                                                   '${index + 1}',
-                                                                  style: TextStyle(
-                                                                    color: Theme.of(context).primaryColor,
-                                                                    fontWeight: FontWeight.bold,
-                                                                    fontSize: 12,
+                                                                  style:
+                                                                      TextStyle(
+                                                                    color: Theme.of(
+                                                                            context)
+                                                                        .primaryColor,
+                                                                    fontWeight:
+                                                                        FontWeight
+                                                                            .bold,
+                                                                    fontSize:
+                                                                        12,
                                                                   ),
                                                                 ),
                                                               ),
                                                             ),
                                                             Expanded(
                                                               child: Text(
-                                                                recipe.steps[index],
-                                                                style: const TextStyle(height: 1.4),
+                                                                recipe.steps[
+                                                                    index],
+                                                                style:
+                                                                    const TextStyle(
+                                                                        height:
+                                                                            1.4),
                                                                 softWrap: true,
                                                               ),
                                                             ),
@@ -1536,4 +1777,4 @@ class _ScanScreenState extends State<ScanScreen> with SingleTickerProviderStateM
       ),
     );
   }
-} 
+}

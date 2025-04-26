@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'scan_screen.dart';
 
 class MainLayout extends StatefulWidget {
@@ -13,7 +14,7 @@ class _MainLayoutState extends State<MainLayout> {
 
   final List<Widget> _screens = [
     const Placeholder(), // Temporary placeholder for Home screen
-    const ScanScreen(),
+    const FoodScannerScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -60,4 +61,4 @@ class _MainLayoutState extends State<MainLayout> {
       ),
     );
   }
-} 
+}

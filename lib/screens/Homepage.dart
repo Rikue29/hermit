@@ -127,6 +127,27 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     _loadState();
   }
 
+  Future<void> _updateSharedFoodCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final count = prefs.getInt('sharedItemsCount') ?? 0;
+      if (mounted) {
+        setState(() {
+          _itemsShared = count;
+          _saveState();
+        });
+      }
+    } catch (e) {
+      print('Error updating shared food count: $e');
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _updateSharedFoodCount();
+  }
+
   Future<void> _initializePrefs() async {
     _prefs = await SharedPreferences.getInstance();
     await _loadTasks();

@@ -24,13 +24,16 @@ class _MySharesTabState extends State<MySharesTab> {
   }
 
   Future<void> _loadItems() async {
+    if (!mounted) return;
     try {
       final items = await _service.getMyItems();
+      if (!mounted) return;
       setState(() {
         _items = items;
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
       });
@@ -46,9 +49,11 @@ class _MySharesTabState extends State<MySharesTab> {
   }
 
   Future<void> _cancelItem(String itemId) async {
+    if (!mounted) return;
     try {
       setState(() => _cancelingItemId = itemId);
       await _service.cancelSharedItem(itemId);
+      if (!mounted) return;
       await _loadItems();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

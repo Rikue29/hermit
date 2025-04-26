@@ -212,7 +212,8 @@ class _CommunityPageState extends State<CommunityPage>
                   // Increment shared items count
                   final prefs = await SharedPreferences.getInstance();
                   int currentCount = prefs.getInt('sharedItemsCount') ?? 0;
-                  await prefs.setInt('sharedItemsCount', currentCount + 1);
+                  int newCount = currentCount + 1;
+                  await prefs.setInt('sharedItemsCount', newCount);
                   
                   // Switch to My Shares tab
                   _tabController.animateTo(1);

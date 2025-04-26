@@ -1,7 +1,6 @@
 import 'dart:io'; // Required for File type
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-// import path for models and services
 import '../models/food_detection.dart';
 import '../services/food_analysis_service.dart';
 import '../services/food_carbon_service.dart';
@@ -3038,3 +3037,4 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 }
+

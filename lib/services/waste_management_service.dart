@@ -1,21 +1,38 @@
 import 'package:google_generative_ai/google_generative_ai.dart';
+import 'dart:convert';
 
 class WasteDisposalSuggestion {
   final String category;
   final String suggestion;
-  final String? details;
-  final String emoji;
+  final String description;
   final List<String> steps;
-  final String? location;
+  final String environmentalImpact;
+  final String location;
+  final String difficulty;
+  final String emoji;
 
   WasteDisposalSuggestion({
     required this.category,
     required this.suggestion,
-    this.details,
-    required this.emoji,
-    List<String>? steps,
-    this.location,
-  }) : steps = steps ?? [];
+    required this.description,
+    required this.steps,
+    required this.environmentalImpact,
+    required this.location,
+    required this.difficulty,
+    this.emoji = '♻️',
+  });
+
+  factory WasteDisposalSuggestion.fromJson(Map<String, dynamic> json) {
+    return WasteDisposalSuggestion(
+      category: json['category'] as String,
+      suggestion: json['suggestion'] as String,
+      description: json['description'] as String,
+      steps: (json['steps'] as List<dynamic>).map((e) => e as String).toList(),
+      environmentalImpact: json['environmentalImpact'] as String,
+      location: json['location'] as String,
+      difficulty: json['difficulty'] as String,
+    );
+  }
 
   @override
   String toString() {
@@ -24,185 +41,120 @@ class WasteDisposalSuggestion {
 }
 
 class WasteManagementService {
-  final GenerativeModel? _model;
-  
-  WasteManagementService({String? apiKey})
-      : _model = apiKey != null
-            ? GenerativeModel(
-                model: 'gemini-2.0-flash',
-                apiKey: apiKey,
-              )
-            : null;
+  final GenerativeModel _model;
+
+  WasteManagementService({required String apiKey})
+      : _model = GenerativeModel(
+          model: 'gemini-2.0-flash',
+          apiKey: apiKey,
+        );
 
   Future<List<WasteDisposalSuggestion>> getSustainableSuggestions(String foodItem) async {
-    if (_model == null) {
-      throw Exception('Gemini API key not configured');
-    }
-
-    final prompt = '''As a Malaysian sustainability expert, provide 3 practical household solutions for managing $foodItem waste. Format your response EXACTLY as shown:
-
-[REUSE]
-Title: Simple home reuse method
-Steps:
-- First step here
-- Second step here
-- Final step here
-
-[COMPOST]
-Title: Easy home composting
-Steps:
-- First step here
-- Second step here
-- Final step here
-
-[DISPOSE]
-Title: Safe disposal method
-Location: Specific location or facility name in Malaysia
-Steps:
-- First step here
-- Second step here
-
-Make all suggestions:
-1. Easy for home use
-2. Using basic household items
-3. Safe for families
-4. Quick (under 30 mins)
-5. Suitable for Malaysian climate''';
-
     try {
+      final prompt = '''
+Generate 3 sustainable waste management suggestions for disposing of $foodItem waste.
+For each suggestion, provide the following in JSON format:
+{
+  "category": "Composting/Recycling/Reuse/etc",
+  "suggestion": "Brief title of the suggestion",
+  "description": "Detailed explanation",
+  "steps": ["step 1", "step 2", "etc"],
+  "environmentalImpact": "Brief explanation of environmental benefits",
+  "location": "Where to dispose (e.g., Home composting, Local recycling center)",
+  "difficulty": "Easy/Medium/Hard"
+}
+Return the response as a JSON array of 3 suggestions.
+''';
+
       final content = [Content.text(prompt)];
-      final response = await _model!.generateContent(content);
-      print('Raw Gemini response: ${response.text}'); // Debug print
-      
-      if (response.text == null || response.text!.isEmpty) {
-        print('Error: Empty response from Gemini');
-        return [
-          WasteDisposalSuggestion(
-            category: 'Error',
-            suggestion: 'No suggestions available',
-            emoji: '⚠️',
-            steps: ['Please try again later'],
-          )
-        ];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null || responseText.isEmpty) {
+        throw Exception('Empty response from model');
       }
 
-      final suggestions = _parseSuggestions(response.text!);
-      
-      if (suggestions.isEmpty) {
-        print('Error: No suggestions parsed from response');
-        return [
-          WasteDisposalSuggestion(
-            category: 'Error',
-            suggestion: 'Could not parse suggestions',
-            emoji: '⚠️',
-            steps: ['Please try again with a different food item'],
-          )
-        ];
-      }
-
-      return suggestions;
+      return _parseSuggestions(responseText);
     } catch (e) {
-      print('Error getting suggestions: $e'); // Debug print
-      return [
-        WasteDisposalSuggestion(
-          category: 'Error',
-          suggestion: 'Error getting suggestions',
-          emoji: '⚠️',
-          steps: ['Error: $e', 'Please try again later'],
-        )
-      ];
+      throw Exception('Failed to generate waste management suggestions: $e');
     }
   }
 
-  List<WasteDisposalSuggestion> _parseSuggestions(String response) {
-    final suggestions = <WasteDisposalSuggestion>[];
-    print('Starting to parse response...'); // Debug print
+  Future<List<WasteDisposalSuggestion>> getSustainableSuggestionsForMultipleItems(List<String> foodItems) async {
+    try {
+      final itemsList = foodItems.join(', ');
+      final prompt = '''
+Generate 3 sustainable waste management suggestions for disposing of waste from these items: $itemsList.
+Focus on solutions that can handle multiple types of waste efficiently.
+For each suggestion, provide the following in JSON format:
+{
+  "category": "Composting/Recycling/Reuse/etc",
+  "suggestion": "Brief title of the suggestion",
+  "description": "Detailed explanation",
+  "steps": ["step 1", "step 2", "etc"],
+  "environmentalImpact": "Brief explanation of environmental benefits",
+  "location": "Where to dispose (e.g., Home composting, Local recycling center)",
+  "difficulty": "Easy/Medium/Hard"
+}
+Return the response as a JSON array of 3 suggestions.
+''';
 
-    // Split by section headers
-    final sectionRegex = RegExp(r'\[(REUSE|COMPOST|DISPOSE)\]');
-    final matches = sectionRegex.allMatches(response);
-    
-    if (matches.isEmpty) {
-      print('No section headers found in response'); // Debug print
-      return [];
-    }
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
 
-    // Process each section
-    for (var i = 0; i < matches.length; i++) {
-      final match = matches.elementAt(i);
-      final category = match.group(1)!;
-      
-      // Get the content until the next section or end
-      final startIndex = match.end;
-      final endIndex = i < matches.length - 1 ? matches.elementAt(i + 1).start : response.length;
-      final sectionContent = response.substring(startIndex, endIndex).trim();
-      
-      print('Parsing section: $category'); // Debug print
-      print('Section content: $sectionContent'); // Debug print
-
-      // Parse the section content
-      String title = '';
-      List<String> steps = [];
-      String? location;
-
-      final lines = sectionContent.split('\n');
-      var inSteps = false;
-
-      for (final line in lines) {
-        final trimmedLine = line.trim();
-        if (trimmedLine.isEmpty) continue;
-
-        if (trimmedLine.startsWith('Title:')) {
-          title = trimmedLine.substring('Title:'.length).trim();
-          print('Found title: $title'); // Debug print
-        } else if (trimmedLine.startsWith('Steps:')) {
-          inSteps = true;
-        } else if (trimmedLine.startsWith('Location:')) {
-          location = trimmedLine.substring('Location:'.length).trim();
-          print('Found location: $location'); // Debug print
-        } else if (trimmedLine.startsWith('-') && inSteps) {
-          final step = trimmedLine.substring(1).trim();
-          steps.add(step);
-          print('Added step: $step'); // Debug print
-        }
+      if (responseText == null || responseText.isEmpty) {
+        throw Exception('Empty response from model');
       }
 
-      if (title.isNotEmpty) {
-        String emoji;
-        switch (category) {
-          case 'REUSE':
-            emoji = '♻️';
-            break;
-          case 'COMPOST':
-            emoji = '🌱';
-            break;
-          case 'DISPOSE':
-            emoji = '🗑️';
-            break;
-          default:
-            emoji = '📝';
-        }
-
-        // Ensure we have at least one step
-        if (steps.isEmpty) {
-          steps = ['Instructions not provided'];
-        }
-
-        suggestions.add(WasteDisposalSuggestion(
-          category: category.capitalize(),
-          emoji: emoji,
-          suggestion: title,
-          details: steps.join('\n'),
-          steps: steps,
-          location: location,
-        ));
-
-        print('Added suggestion for category: $category'); // Debug print
-      }
+      return _parseSuggestions(responseText);
+    } catch (e) {
+      throw Exception('Failed to generate waste management suggestions for multiple items: $e');
     }
+  }
 
-    print('Parsed ${suggestions.length} suggestions'); // Debug print
-    return suggestions;
+  Future<List<WasteDisposalSuggestion>> getLocationBasedSuggestions(String foodItem, String location) async {
+    try {
+      final prompt = '''
+Generate 3 sustainable waste management suggestions for disposing of $foodItem waste in $location.
+Focus on locally available solutions and facilities.
+For each suggestion, provide the following in JSON format:
+{
+  "category": "Composting/Recycling/Reuse/etc",
+  "suggestion": "Brief title of the suggestion",
+  "description": "Detailed explanation considering local context",
+  "steps": ["step 1", "step 2", "etc"],
+  "environmentalImpact": "Brief explanation of environmental benefits",
+  "location": "Specific local facility or method in $location",
+  "difficulty": "Easy/Medium/Hard"
+}
+Return the response as a JSON array of 3 suggestions.
+''';
+
+      final content = [Content.text(prompt)];
+      final response = await _model.generateContent(content);
+      final responseText = response.text;
+
+      if (responseText == null || responseText.isEmpty) {
+        throw Exception('Empty response from model');
+      }
+
+      return _parseSuggestions(responseText);
+    } catch (e) {
+      throw Exception('Failed to generate location-based waste management suggestions: $e');
+    }
+  }
+
+  List<WasteDisposalSuggestion> _parseSuggestions(String responseText) {
+    try {
+      // Extract JSON array from the response
+      final jsonString = responseText.replaceAll('```json', '').replaceAll('```', '').trim();
+      final List<dynamic> suggestionsJson = json.decode(jsonString);
+      
+      return suggestionsJson.map((json) => WasteDisposalSuggestion.fromJson(json)).toList();
+    } catch (e) {
+      throw Exception('Failed to parse suggestions: $e');
+    }
   }
 }
 

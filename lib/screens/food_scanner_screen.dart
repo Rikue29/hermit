@@ -39,6 +39,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   TextEditingController _detectionController =
       TextEditingController(); // Controller for editing detection text
   late dynamic _selectedFoodInfo; // Declare _selectedFoodInfo
+  final Set<String> _selectedItems = <String>{}; // Track selected food items
 
   @override
   void initState() {
@@ -166,6 +167,16 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       appBar: AppBar(
         title: const Text('Scan Food'),
         actions: [
+          if (_selectedItems.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  _selectedItems.clear();
+                });
+              },
+              tooltip: 'Clear selection',
+            ),
           IconButton(
             icon: const Icon(Icons.info_outline),
             onPressed: () {
@@ -255,9 +266,9 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
             ),
           ),
           DraggableScrollableSheet(
-            initialChildSize: 0.15,
+            initialChildSize: 0.3,
             minChildSize: 0.15,
-            maxChildSize: 0.7,
+            maxChildSize: 0.85,
             builder: (context, scrollController) {
               return Container(
                 decoration: BoxDecoration(
@@ -273,14 +284,21 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                 ),
                 child: Column(
                   children: [
-                    // Drag handle
-                    Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                    // Drag handle with animation feedback
+                    GestureDetector(
+                      onVerticalDragUpdate: (details) {
+                        // The drag is handled by DraggableScrollableSheet
+                      },
+                      child: Container(
+                        width: 100,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Container(
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
                       ),
                     ),
                     Padding(
@@ -346,13 +364,15 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                               itemCount: _recentScans.length,
                               itemBuilder: (context, index) {
                                 final scan = _recentScans[index];
+                                final isSelected = _selectedItems.contains(scan.foodItem);
+                                
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey.shade50,
+                                    color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: Colors.grey.shade200,
+                                      color: isSelected ? Colors.green.shade200 : Colors.grey.shade200,
                                     ),
                                   ),
                                   child: Material(
@@ -414,12 +434,21 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
-                                            Text(
-                                              'N/A',
-                                              style: TextStyle(
-                                                color: Colors.grey[600],
-                                                fontSize: 14,
-                                              ),
+                                            Checkbox(
+                                              value: isSelected,
+                                              onChanged: (bool? value) {
+                                                setState(() {
+                                                  if (value == true) {
+                                                    // Remove any other scan of the same food item
+                                                    _selectedItems.removeWhere((item) => 
+                                                      item.toLowerCase() == scan.foodItem.toLowerCase()
+                                                    );
+                                                    _selectedItems.add(scan.foodItem);
+                                                  } else {
+                                                    _selectedItems.remove(scan.foodItem);
+                                                  }
+                                                });
+                                              },
                                             ),
                                           ],
                                         ),
@@ -430,6 +459,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                               },
                             ),
                     ),
+                    _buildActionButtons(),
                   ],
                 ),
               );
@@ -1643,22 +1673,648 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 
-  String _getFoodEmoji(String foodItem) {
-    final Map<String, String> foodEmojis = {
-      'Apples': '🍎',
-      'Oranges': '🍊',
-      'Bananas': '🍌',
-      'Grapes': '🍇',
-      'Pears': '🍐',
-      // Add more mappings as needed
-    };
-    return foodEmojis[foodItem] ?? '🥗';
-  }
 
   void _clearRecentScans() {
     setState(() {
       _recentScans.clear();
       _prefs.remove('recent_scans');
     });
+  }
+
+  Widget _buildActionButtons() {
+    if (_selectedItems.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 4,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              '${_selectedItems.length} selected',
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Row(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
+                  },
+                  icon: const Icon(Icons.restaurant_menu, size: 18),
+                  label: const Text('Generate Recipes'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3E6B3D),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    _showBatchWasteManagementDialog(_selectedItems.toList());
+                  },
+                  icon: const Icon(Icons.eco, size: 18),
+                  label: const Text('Waste Management'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A5F4A),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: const TextStyle(fontSize: 13),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showBatchRecipeSuggestionsDialog(List<String> foodItems) async {
+    final recipeService = RecipeService(apiKey: EnvService.geminiApiKey);
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return FutureBuilder<List<Recipe>>(
+            future: recipeService.getRecipeSuggestionsForMultipleItems(foodItems),
+            builder: (context, snapshot) {
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8,
+                    maxWidth: 600,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.restaurant_menu),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Recipe Suggestions (${foodItems.length} items)',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Generating recipe suggestions...'),
+                            ],
+                          ),
+                        )
+                      else if (snapshot.hasError)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showBatchRecipeSuggestionsDialog(foodItems);
+                                },
+                                child: const Text('Try Again'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (!snapshot.hasData || snapshot.data!.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('No recipes available'),
+                        )
+                      else
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: [
+                              Text(
+                                'Recipes using: ${foodItems.join(", ")}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(color: Colors.grey[600]),
+                              ),
+                              const SizedBox(height: 16),
+                              ...snapshot.data!.map((recipe) {
+                                return Card(
+                                  elevation: 2,
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: ExpansionTile(
+                                    leading: Text(
+                                      recipe.imageEmoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                    title: Text(
+                                      recipe.name,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    subtitle: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          recipe.description,
+                                          style: TextStyle(
+                                            color: Colors.grey[600],
+                                            fontSize: 14,
+                                          ),
+                                          maxLines: 2,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        width: double.infinity,
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            const Text(
+                                              'Ingredients',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ...recipe.ingredients.map(
+                                              (ingredient) => Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 4,
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.fiber_manual_record,
+                                                      size: 8,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Text(ingredient),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(height: 16),
+                                            const Text(
+                                              'Instructions',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 16,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ...recipe.steps.asMap().entries.map(
+                                              (entry) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(
+                                                    bottom: 12,
+                                                  ),
+                                                  child: Row(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment.start,
+                                                    children: [
+                                                      Container(
+                                                        width: 24,
+                                                        height: 24,
+                                                        margin:
+                                                            const EdgeInsets.only(
+                                                          right: 8,
+                                                        ),
+                                                        decoration: BoxDecoration(
+                                                          color: Theme.of(context)
+                                                              .primaryColor
+                                                              .withOpacity(0.1),
+                                                          borderRadius:
+                                                              BorderRadius.circular(
+                                                            12,
+                                                          ),
+                                                        ),
+                                                        child: Center(
+                                                          child: Text(
+                                                            '${entry.key + 1}',
+                                                            style: TextStyle(
+                                                              color: Theme.of(
+                                                                context,
+                                                              ).primaryColor,
+                                                              fontWeight:
+                                                                  FontWeight.bold,
+                                                              fontSize: 12,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      Expanded(
+                                                        child: Text(
+                                                          entry.value,
+                                                          style: const TextStyle(
+                                                            height: 1.4,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _showBatchWasteManagementDialog(List<String> foodItems) async {
+    final wasteService = WasteManagementService(
+      apiKey: EnvService.geminiApiKey,
+    );
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) => StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return FutureBuilder<List<WasteDisposalSuggestion>>(
+            future: wasteService.getSustainableSuggestionsForMultipleItems(foodItems),
+            builder: (context, snapshot) {
+              return Dialog(
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(context).size.height * 0.8,
+                    maxWidth: 600,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).colorScheme.primaryContainer,
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.eco),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Waste Management (${foodItems.length} items)',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.close),
+                              onPressed: () => Navigator.of(context).pop(),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (snapshot.connectionState == ConnectionState.waiting)
+                        const Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Column(
+                            children: [
+                              CircularProgressIndicator(),
+                              SizedBox(height: 16),
+                              Text('Finding sustainable options...'),
+                            ],
+                          ),
+                        )
+                      else if (snapshot.hasError)
+                        Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.error_outline,
+                                color: Colors.red,
+                                size: 48,
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Error: ${snapshot.error}',
+                                style: const TextStyle(color: Colors.red),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 16),
+                              ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  _showBatchWasteManagementDialog(foodItems);
+                                },
+                                child: const Text('Try Again'),
+                              ),
+                            ],
+                          ),
+                        )
+                      else if (!snapshot.hasData || snapshot.data!.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Text('No suggestions available'),
+                        )
+                      else
+                        Expanded(
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: [
+                              Text(
+                                'Suggestions for: ${foodItems.join(", ")}',
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .titleMedium
+                                    ?.copyWith(color: Colors.grey[600]),
+                              ),
+                              const SizedBox(height: 16),
+                              ...snapshot.data!.map((suggestion) {
+                                Color color;
+                                String timeEstimate;
+                                IconData categoryIcon;
+
+                                switch (suggestion.category.toLowerCase()) {
+                                  case 'reuse':
+                                    color = Colors.green;
+                                    timeEstimate = '5-15 mins';
+                                    categoryIcon = Icons.home_repair_service;
+                                    break;
+                                  case 'compost':
+                                    color = Colors.brown;
+                                    timeEstimate = '10-20 mins';
+                                    categoryIcon = Icons.yard;
+                                    break;
+                                  case 'dispose':
+                                    color = Colors.red;
+                                    timeEstimate = '5-10 mins';
+                                    categoryIcon = Icons.delete_outline;
+                                    break;
+                                  default:
+                                    color = Colors.grey;
+                                    timeEstimate = 'varies';
+                                    categoryIcon = Icons.info_outline;
+                                }
+
+                                return Card(
+                                  elevation: 2,
+                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    side: BorderSide(
+                                      color: color.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  child: ExpansionTile(
+                                    leading: Text(
+                                      suggestion.emoji,
+                                      style: const TextStyle(fontSize: 24),
+                                    ),
+                                    title: Text(
+                                      suggestion.suggestion,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    subtitle: Row(
+                                      children: [
+                                        Icon(
+                                          categoryIcon,
+                                          size: 16,
+                                          color: color,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          suggestion.category,
+                                          style: TextStyle(
+                                            color: color,
+                                            fontWeight: FontWeight.w500,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(16),
+                                        width: double.infinity,
+                                        decoration: BoxDecoration(
+                                          color: color.withOpacity(0.05),
+                                          borderRadius: const BorderRadius.vertical(
+                                            bottom: Radius.circular(12),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            if (suggestion.location != null) ...[
+                                              Container(
+                                                padding: const EdgeInsets.all(12),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white,
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                    color: color.withOpacity(0.2),
+                                                  ),
+                                                ),
+                                                child: Row(
+                                                  children: [
+                                                    const Icon(
+                                                      Icons.location_on,
+                                                      size: 20,
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    Expanded(
+                                                      child: Column(
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
+                                                        children: [
+                                                          const Text(
+                                                            'Where to go:',
+                                                            style: TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight.w500,
+                                                              fontSize: 12,
+                                                              color: Colors.grey,
+                                                            ),
+                                                          ),
+                                                          const SizedBox(height: 4),
+                                                          Text(
+                                                            suggestion.location!,
+                                                            style: const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight.w500,
+                                                              color: Colors.black87,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(height: 16),
+                                            ],
+                                            const Text(
+                                              'Steps to follow:',
+                                              style: TextStyle(
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.grey,
+                                                fontSize: 12,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 8),
+                                            ...suggestion.steps
+                                                .asMap()
+                                                .entries
+                                                .map((entry) {
+                                              return Padding(
+                                                padding: const EdgeInsets.only(
+                                                  bottom: 12,
+                                                ),
+                                                child: Row(
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
+                                                  children: [
+                                                    Container(
+                                                      width: 24,
+                                                      height: 24,
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                        right: 8,
+                                                      ),
+                                                      decoration: BoxDecoration(
+                                                        color: color.withOpacity(
+                                                          0.1,
+                                                        ),
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                      ),
+                                                      child: Center(
+                                                        child: Text(
+                                                          '${entry.key + 1}',
+                                                          style: TextStyle(
+                                                            color: color,
+                                                            fontWeight:
+                                                                FontWeight.bold,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    Expanded(
+                                                      child: Text(
+                                                        entry.value,
+                                                        style: const TextStyle(
+                                                          height: 1.4,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                            }).toList(),
+                                          ],
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              }).toList(),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
+    );
   }
 }

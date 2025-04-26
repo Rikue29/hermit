@@ -1,14 +1,12 @@
-import 'package:flutter/widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:food_waste_reducer/screens/food_scanner_screen.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:food_waste_reducer/services/recipe_service.dart';
 import 'package:food_waste_reducer/services/waste_management_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
 
-enum TaskType {
-  recipe,
-  disposal
-}
+enum TaskType { recipe, disposal }
 
 class Task {
   final String title;
@@ -17,6 +15,8 @@ class Task {
   final Color tagColor;
   final Color tagTextColor;
   final TaskType type;
+  final Recipe? recipeDetails;
+  final WasteDisposalSuggestion? wasteSuggestion;
   bool isCompleted;
 
   Task({
@@ -26,8 +26,53 @@ class Task {
     required this.tagColor,
     required this.tagTextColor,
     required this.type,
+    this.recipeDetails,
+    this.wasteSuggestion,
     this.isCompleted = false,
   });
+
+  // Convert color to hex string
+  String _colorToHex(Color color) {
+    return '#${color.value.toRadixString(16).padLeft(8, '0')}';
+  }
+
+  // Convert hex string to color
+  static Color _hexToColor(String hex) {
+    return Color(int.parse(hex.substring(1), radix: 16));
+  }
+
+  Map<String, dynamic> toJson() => {
+    'title': title,
+    'timing': timing,
+    'tag': tag,
+    'tagColor': _colorToHex(tagColor),
+    'tagTextColor': _colorToHex(tagTextColor),
+    'type': type.toString(),
+    'isCompleted': isCompleted,
+    'recipeDetails': recipeDetails?.toJson(),
+    'wasteSuggestion': wasteSuggestion?.toJson(),
+  };
+
+  factory Task.fromJson(Map<String, dynamic> json) {
+    return Task(
+      title: json['title'],
+      timing: json['timing'],
+      tag: json['tag'],
+      tagColor: _hexToColor(json['tagColor']),
+      tagTextColor: _hexToColor(json['tagTextColor']),
+      type: TaskType.values.firstWhere(
+        (e) => e.toString() == json['type'],
+        orElse: () => TaskType.disposal,
+      ),
+      isCompleted: json['isCompleted'] ?? false,
+      recipeDetails: json['recipeDetails'] != null
+          ? Recipe.fromJson(json['recipeDetails'])
+          : null,
+      wasteSuggestion: json['wasteSuggestion'] != null
+          ? WasteDisposalSuggestion.fromJson(json['wasteSuggestion'])
+          : null,
+    );
+  }
 }
 
 class Alert {
@@ -51,43 +96,16 @@ class Homepage extends StatefulWidget {
 
 class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   int _currentIndex = 0;
-  final List<Task> _tasks = [
-    Task(
-      title: 'Make vegetable stock from scraps',
-      timing: 'Today',
-      tag: 'Kitchen',
-      tagColor: const Color(0xFFE3EAFF),
-      tagTextColor: const Color(0xFF2563EB),
-      type: TaskType.recipe,
-    ),
-    Task(
-      title: 'Freeze ripe bananas for smoothies',
-      timing: 'Today',
-      tag: 'Urgent',
-      tagColor: const Color(0xFFFFF3DC),
-      tagTextColor: const Color(0xFFB45309),
-      type: TaskType.recipe,
-    ),
-    Task(
-      title: 'Organize fridge with FIFO system',
-      timing: 'Tomorrow',
-      tag: 'Planning',
-      tagColor: const Color(0xFFF3E5FF),
-      tagTextColor: const Color(0xFF7C3AED),
-      type: TaskType.disposal,
-    ),
-    Task(
-      title: 'Make compost from food scraps',
-      timing: 'This week',
-      tag: 'Garden',
-      tagColor: const Color(0xFFDCFCE7),
-      tagTextColor: const Color(0xFF15803D),
-      type: TaskType.disposal,
-    ),
-  ];
-
+  List<Task> _tasks = [];
+  late SharedPreferences _prefs;
   final ImagePicker _picker = ImagePicker();
-  
+
+  // Add impact tracking variables
+  double _totalImpactScore = 0.0;
+  double _moneySaved = 0.0;
+  double _kgSaved = 0.0;
+  int _itemsShared = 0;
+
   final List<Alert> _alerts = [
     Alert(
       title: 'Overdue Tasks Alert',
@@ -105,6 +123,28 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    _initializePrefs();
+  }
+
+  Future<void> _initializePrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    await _loadTasks();
+  }
+
+  Future<void> _loadTasks() async {
+    final tasksJson = _prefs.getStringList('tasks') ?? [];
+    setState(() {
+      _tasks = tasksJson
+          .map((json) => Task.fromJson(jsonDecode(json)))
+          .toList();
+    });
+  }
+
+  Future<void> _saveTasks() async {
+    final tasksJson = _tasks
+        .map((task) => jsonEncode(task.toJson()))
+        .toList();
+    await _prefs.setStringList('tasks', tasksJson);
   }
 
   @override
@@ -144,6 +184,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         ),
       );
     });
+    _saveTasks();
   }
 
   void _addTaskFromRecipe(Recipe recipe) {
@@ -156,9 +197,11 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
           tagColor: const Color(0xFFE3EAFF),
           tagTextColor: const Color(0xFF2563EB),
           type: TaskType.recipe,
+          recipeDetails: recipe,
         ),
       );
     });
+    _saveTasks();
   }
 
   void _addTaskFromWasteSuggestion(WasteDisposalSuggestion suggestion) {
@@ -171,35 +214,78 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
           tagColor: const Color(0xFFDCFCE7),
           tagTextColor: const Color(0xFF15803D),
           type: TaskType.disposal,
+          wasteSuggestion: suggestion,
         ),
       );
+    });
+    _saveTasks();
+  }
+
+  // Add method to calculate progress
+  double _calculateProgress() {
+    if (_tasks.isEmpty) return 0.0;
+    int completedTasks = _tasks.where((task) => task.isCompleted).length;
+    return completedTasks / _tasks.length;
+  }
+
+  // Calculate environmental impact (dummy calculations for simulation)
+  double _calculateEnvironmentalImpact() {
+    // For simulation: max impact score is 100
+    // Each completed task contributes based on its type
+    double maxScore = 100.0;
+    double currentScore = _totalImpactScore;
+    
+    // Cap the score at 100%
+    return (currentScore / maxScore).clamp(0.0, 1.0);
+  }
+
+  // Update impact metrics when a task is completed
+  void _updateImpactMetrics(Task task) {
+    setState(() {
+      // Simulate different impact based on task type
+      if (task.type == TaskType.recipe) {
+        _totalImpactScore += 15.0; // Recipe tasks have higher environmental impact
+        _moneySaved += 8.0; // Average money saved per recipe
+        _kgSaved += 0.8; // Average food waste prevented
+      } else {
+        _totalImpactScore += 10.0; // Disposal tasks
+        _kgSaved += 0.5; // Average waste properly disposed
+      }
+      
+      // Increment shared items counter (simulated)
+      if (_totalImpactScore % 30 == 0) { // Every few tasks completed
+        _itemsShared++;
+      }
     });
   }
 
   Future<void> _getImageFromGallery(int index) async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
-      // First mark as completed to show animation
       setState(() {
+        _tasks[index].isCompleted = true;
         _completedTasks[index] = true;
+        _updateImpactMetrics(_tasks[index]); // Update impact when task completed
       });
-      
+
       // Wait longer for the checkmark animation
       await Future.delayed(const Duration(milliseconds: 800));
-      
+
       // Start fade out animation
       final fadeController = _getFadeController(index);
       await fadeController.forward();
-      
+
       // Then remove the task and clean up
       setState(() {
         _tasks.removeAt(index);
         _completedTasks.remove(index);
       });
-      
+
       // Clean up the controller
       fadeController.dispose();
       _fadeControllers.remove(index);
+      
+      _saveTasks();
     }
   }
 
@@ -271,13 +357,19 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
             width: 32,
             height: 32,
             decoration: BoxDecoration(
-              color: alert.isRead ? const Color(0xFFE8F5E9) : const Color(0xFFFEF3C7),
+              color: alert.isRead
+                  ? const Color(0xFFE8F5E9)
+                  : const Color(0xFFFEF3C7),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Center(
               child: Icon(
-                alert.isRead ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                color: alert.isRead ? const Color(0xFF4CAF50) : const Color(0xFFD97706),
+                alert.isRead
+                    ? Icons.check_circle_outline
+                    : Icons.warning_amber_rounded,
+                color: alert.isRead
+                    ? const Color(0xFF4CAF50)
+                    : const Color(0xFFD97706),
                 size: 18,
               ),
             ),
@@ -367,6 +459,306 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     );
   }
 
+  void _showTaskDetails(Task task) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Container(
+            constraints: BoxConstraints(
+              maxHeight: MediaQuery.of(context).size.height * 0.8,
+              maxWidth: 600,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: task.tagColor,
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(16),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        task.type == TaskType.recipe
+                            ? Icons.restaurant_menu
+                            : Icons.eco,
+                        color: task.tagTextColor,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          task.title,
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: task.tagTextColor,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => Navigator.of(context).pop(),
+                        color: task.tagTextColor,
+                      ),
+                    ],
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(16),
+                    child: task.type == TaskType.recipe
+                        ? _buildRecipeDetails(task.recipeDetails!)
+                        : _buildWasteSuggestionDetails(task.wasteSuggestion!),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildRecipeDetails(Recipe recipe) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          recipe.description,
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            _buildInfoChip(Icons.timer, recipe.prepTime),
+            _buildInfoChip(Icons.local_fire_department, recipe.cookTime),
+            _buildInfoChip(Icons.people, recipe.servings),
+          ],
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Ingredients',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recipe.ingredients.map(
+          (ingredient) => Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(
+              children: [
+                const Icon(Icons.fiber_manual_record, size: 8),
+                const SizedBox(width: 8),
+                Expanded(child: Text(ingredient)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 24),
+        const Text(
+          'Instructions',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        ...recipe.steps.asMap().entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(
+                        color: Colors.blue,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildWasteSuggestionDetails(WasteDisposalSuggestion suggestion) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 6,
+              ),
+              decoration: BoxDecoration(
+                color: Colors.green.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    suggestion.emoji,
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    suggestion.category,
+                    style: const TextStyle(
+                      color: Colors.green,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        if (suggestion.location != null) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.grey[50],
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.grey[200]!),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Where to go:',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        suggestion.location!,
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+        ],
+        const Text(
+          'Steps to follow:',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ...suggestion.steps.asMap().entries.map(
+          (entry) => Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.green.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Center(
+                    child: Text(
+                      '${entry.key + 1}',
+                      style: const TextStyle(
+                        color: Colors.green,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    entry.value,
+                    style: const TextStyle(height: 1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoChip(IconData icon, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.grey[100],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: Colors.grey[600]),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -451,15 +843,16 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   Text(
                                     'Your Impact',
                                     style: TextStyle(
-                                      fontSize: 24,
+                                      fontSize: 28,
                                       fontWeight: FontWeight.bold,
                                       color: Colors.white,
                                     ),
                                   ),
+                                 
                                   Text(
-                                    'This week',
+                                    '(CO2, Energy Savings, \nWaste Reduction)',
                                     style: TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 12,
                                       color: Colors.white70,
                                     ),
                                   ),
@@ -472,28 +865,34 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                 child: Stack(
                                   alignment: Alignment.center,
                                   children: [
-                                    CircularProgressIndicator(
-                                      value: 0.75,
-                                      backgroundColor:
-                                          Colors.white.withOpacity(0.2),
-                                      valueColor:
-                                          const AlwaysStoppedAnimation<Color>(
-                                              Colors.white),
-                                      strokeWidth: 4,
+                                    SizedBox(
+                                      width: 100,
+                                      height: 100,
+                                      child: CircularProgressIndicator(
+                                        value: _calculateEnvironmentalImpact(),
+                                        backgroundColor:
+                                            Colors.white.withOpacity(0.2),
+                                        valueColor:
+                                            const AlwaysStoppedAnimation<Color>(
+                                                Colors.white),
+                                        strokeWidth: 16,
+                                        strokeCap: StrokeCap.round,
+                                      ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.all(8),
+                                      width: 90,
+                                      height: 90,
                                       decoration: BoxDecoration(
                                         color: Colors.white.withOpacity(0.1),
                                         shape: BoxShape.circle,
                                       ),
-                                      child: const Center(
+                                      child: Center(
                                         child: Text(
-                                          '75%',
-                                          style: TextStyle(
+                                          '${(_calculateEnvironmentalImpact() * 100).toInt()}%',
+                                          style: const TextStyle(
                                             color: Colors.white,
-                                            fontWeight: FontWeight.w500,
-                                            fontSize: 28,
+                                            fontWeight: FontWeight.w600,
+                                            fontSize: 26,
                                           ),
                                         ),
                                       ),
@@ -504,20 +903,20 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _ImpactMetric(
-                                title: 'Saved',
-                                value: '3.2 kg',
+                                title: 'Money Saved',
+                                value: '\$${_moneySaved.toStringAsFixed(0)}',
                               ),
                               _ImpactMetric(
-                                title: 'Money Saved',
-                                value: '\$24',
+                                title: 'Saved',
+                                value: '${_kgSaved.toStringAsFixed(1)} kg',
                               ),
                               _ImpactMetric(
                                 title: 'Shared Items',
-                                value: '5',
+                                value: _itemsShared.toString(),
                               ),
                             ],
                           ),
@@ -565,11 +964,14 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 itemCount: _alerts.length,
-                                separatorBuilder: (context, index) => const SizedBox(height: 8),
-                                itemBuilder: (context, index) => _buildAlertItem(_alerts[index], index),
+                                separatorBuilder: (context, index) =>
+                                    const SizedBox(height: 8),
+                                itemBuilder: (context, index) =>
+                                    _buildAlertItem(_alerts[index], index),
                               )
                             : Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 12, vertical: 16),
                                 decoration: BoxDecoration(
                                   color: Colors.white,
                                   borderRadius: BorderRadius.circular(12),
@@ -661,15 +1063,18 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                   children: [
                                     GestureDetector(
                                       onTap: () => _toggleTask(index),
-                                      child: _buildTaskCheckbox(index, task.isCompleted),
+                                      child: _buildTaskCheckbox(
+                                          index, task.isCompleted),
                                     ),
                                     const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
                                               Expanded(
                                                 child: Text(
@@ -679,23 +1084,28 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                                     height: 1.5,
                                                     color: task.isCompleted
                                                         ? Colors.grey.shade400
-                                                        : const Color(0xFF2D3142),
+                                                        : const Color(
+                                                            0xFF2D3142),
                                                     fontWeight: FontWeight.w600,
                                                     decoration: task.isCompleted
-                                                        ? TextDecoration.lineThrough
+                                                        ? TextDecoration
+                                                            .lineThrough
                                                         : null,
                                                   ),
                                                 ),
                                               ),
                                               const SizedBox(width: 12),
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
+                                                padding:
+                                                    const EdgeInsets.symmetric(
                                                   horizontal: 12,
                                                   vertical: 6,
                                                 ),
                                                 decoration: BoxDecoration(
                                                   color: task.tagColor,
-                                                  borderRadius: BorderRadius.circular(100),
+                                                  borderRadius:
+                                                      BorderRadius.circular(
+                                                          100),
                                                 ),
                                                 child: Text(
                                                   task.tag,
@@ -711,17 +1121,47 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                                             ],
                                           ),
                                           const SizedBox(height: 4),
-                                          Text(
-                                            task.timing,
-                                            style: TextStyle(
-                                              fontSize: 14,
-                                              color: task.isCompleted
-                                                  ? Colors.grey.shade400
-                                                  : Colors.grey.shade600,
-                                              decoration: task.isCompleted
-                                                  ? TextDecoration.lineThrough
-                                                  : null,
-                                            ),
+                                          Row(
+                                            children: [
+                                              Text(
+                                                task.timing,
+                                                style: TextStyle(
+                                                  fontSize: 14,
+                                                  color: task.isCompleted
+                                                      ? Colors.grey.shade400
+                                                      : Colors.grey.shade600,
+                                                  decoration: task.isCompleted
+                                                      ? TextDecoration.lineThrough
+                                                      : null,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              if (!task.isCompleted && (task.recipeDetails != null || task.wasteSuggestion != null))
+                                                TextButton.icon(
+                                                  onPressed: () => _showTaskDetails(task),
+                                                  icon: Icon(
+                                                    task.type == TaskType.recipe
+                                                        ? Icons.restaurant_menu
+                                                        : Icons.eco,
+                                                    size: 16,
+                                                    color: task.tagTextColor,
+                                                  ),
+                                                  label: Text(
+                                                    'View Details',
+                                                    style: TextStyle(
+                                                      fontSize: 14,
+                                                      color: task.tagTextColor,
+                                                    ),
+                                                  ),
+                                                  style: TextButton.styleFrom(
+                                                    padding: const EdgeInsets.symmetric(
+                                                      horizontal: 8,
+                                                      vertical: 4,
+                                                    ),
+                                                    backgroundColor: task.tagColor.withOpacity(0.5),
+                                                  ),
+                                                ),
+                                            ],
                                           ),
                                         ],
                                       ),
@@ -847,7 +1287,6 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
     );
   }
 }
-
 class _ImpactMetric extends StatelessWidget {
   final String title;
   final String value;
@@ -873,16 +1312,18 @@ class _ImpactMetric extends StatelessWidget {
             title,
             style: const TextStyle(
               color: Colors.white70,
-              fontSize: 12,
+              fontSize: 15,
             ),
           ),
           const SizedBox(height: 2),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
+          Center(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
         ],

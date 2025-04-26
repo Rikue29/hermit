@@ -40,6 +40,19 @@ class Recipe {
       imageEmoji: json['imageEmoji'],
     );
   }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'description': description,
+    'ingredients': ingredients,
+    'steps': steps,
+    'difficulty': difficulty,
+    'prepTime': prepTime,
+    'cookTime': cookTime,
+    'servings': servings,
+    'category': category,
+    'imageEmoji': imageEmoji,
+  };
 }
 
 class RecipeService {

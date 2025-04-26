@@ -8,7 +8,7 @@ import '../services/env_service.dart';
 import '../services/waste_management_service.dart';
 import '../services/recipe_service.dart';
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart';
+import '../services/firestore_service.dart'; // Add Firestore service
 import '../models/recent_scan.dart';
 import 'package:flutter/rendering.dart';
 
@@ -34,7 +34,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   final ImagePicker _picker = ImagePicker();
   late FoodAnalysisService _foodAnalysisService;
   late FoodCarbonService _foodCarbonService;
-  late SharedPreferences _prefs;
+  late FirestoreService
+      _firestoreService; // Replace SharedPreferences with FirestoreService
 
   // State variables
   List<RecentScan> _recentScans = []; // Holds recent scan results
@@ -48,12 +49,14 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   final Set<String> _selectedItems = <String>{}; // Track selected food items
 
   // Add controller for DraggableScrollableSheet
-  final DraggableScrollableController _dragController = DraggableScrollableController();
+  final DraggableScrollableController _dragController =
+      DraggableScrollableController();
 
   // === Lifecycle Methods ===
   @override
   void initState() {
     super.initState();
+    _firestoreService = FirestoreService(); // Initialize Firestore service
     _initializeServices();
   }
 
@@ -73,7 +76,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         apiKey: EnvService.geminiApiKey,
       );
       _foodCarbonService = FoodCarbonService(apiKey: EnvService.geminiApiKey);
-      _prefs = await SharedPreferences.getInstance();
       await _loadRecentScans();
     } catch (e) {
       setState(() {
@@ -83,18 +85,62 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   Future<void> _loadRecentScans() async {
-    final scansJson = _prefs.getStringList('recent_scans') ?? [];
-    print('Loaded scans from SharedPreferences: ' + scansJson.toString());
+    try {
+      final scans = await _firestoreService.getRecentScans();
+
+      setState(() {
+        _recentScans = scans;
+      });
+
+      if (_recentScans.isEmpty) {
+        // If no recent scans are found, load dummy scans
+        _loadDummyScans();
+      }
+    } catch (e) {
+      print('Error loading recent scans: $e');
+      setState(() {
+        _errorMessage = e.toString();
+        _recentScans = [];
+      });
+      // Load dummy scans as fallback
+      _loadDummyScans();
+    }
+  }
+
+  // Load dummy scans for initial display
+  void _loadDummyScans() async {
+    print('Loading dummy scans');
+    final dummyScans = [
+      RecentScan(
+        foodItem: 'Apples',
+        timestamp: DateTime.now().subtract(const Duration(minutes: 30)),
+      ),
+      RecentScan(
+        foodItem: 'Oranges',
+        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
+      ),
+      RecentScan(
+        foodItem: 'Bananas',
+        timestamp: DateTime.now().subtract(const Duration(hours: 5)),
+      ),
+      RecentScan(
+        foodItem: 'Grapes',
+        timestamp: DateTime.now().subtract(const Duration(days: 1)),
+      ),
+      RecentScan(
+        foodItem: 'Pears',
+        timestamp: DateTime.now().subtract(const Duration(days: 2)),
+      ),
+    ];
+
+    // Add to Firestore
+    await _firestoreService.addScans(dummyScans);
+
     setState(() {
-      _recentScans = scansJson
-          .map(
-            (json) => RecentScan.fromJson(
-              jsonDecode(json) as Map<String, dynamic>,
-            ),
-          )
-          .toList()
-        ..sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      _recentScans = dummyScans;
     });
+
+    print('Dummy scans loaded and saved to Firestore');
   }
 
   // === Core Scanning Functionality ===
@@ -160,19 +206,32 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
   Future<void> _confirmDetection() async {
     if (_imageFile != null) {
-      final newScan = RecentScan(
-        foodItem: _detectionController.text,
-        timestamp: DateTime.now(),
-        imagePath: _imageFile!.path,
-      );
+      // Get all the detected items from the text field (they're comma-separated)
+      final detectedItems = _detectionController.text
+          .split(',')
+          .map((item) => item.trim())
+          .where((item) => item.isNotEmpty)
+          .toList();
+
+      print('Detected items for separate listing: $detectedItems');
+
+      // Create a new scan for each detected item
+      final newScans = <RecentScan>[];
+      for (final foodItem in detectedItems) {
+        final newScan = RecentScan(
+          foodItem: foodItem,
+          timestamp: DateTime.now(),
+          imagePath: _imageFile!.path, // All items share the same image
+        );
+        newScans.add(newScan);
+      }
+
+      // Add to Firestore
+      await _firestoreService.addScans(newScans);
 
       setState(() {
-        _recentScans.insert(0, newScan);
-
-        // Save to SharedPreferences
-        final scansJson =
-            _recentScans.map((scan) => jsonEncode(scan.toJson())).toList();
-        _prefs.setStringList('recent_scans', scansJson);
+        // Add all new scans to the beginning of the list
+        _recentScans.insertAll(0, newScans);
 
         _imageFile = null;
         _detections = [];
@@ -271,7 +330,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                       const SizedBox(height: 20),
                       const Text(
                         'Scan Your Food',
-                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 24, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 10),
                       const Text(
@@ -302,7 +362,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                 const SizedBox(height: 40),
                 if (_imageFile != null) ...[
                   const SizedBox(height: 20),
-                  if (_isLoading) const Center(child: CircularProgressIndicator()),
+                  if (_isLoading)
+                    const Center(child: CircularProgressIndicator()),
                   if (!_isLoading && _detections.isNotEmpty) ...[
                     TextField(
                       controller: _detectionController,
@@ -330,7 +391,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
               return Container(
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withOpacity(0.1),
@@ -421,21 +483,27 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                               itemCount: _recentScans.length,
                               itemBuilder: (context, index) {
                                 final scan = _recentScans[index];
-                                final isSelected = _selectedItems.contains(scan.foodItem);
-                                
+                                final isSelected =
+                                    _selectedItems.contains(scan.foodItem);
+
                                 return Container(
                                   margin: const EdgeInsets.only(bottom: 12),
                                   decoration: BoxDecoration(
-                                    color: isSelected ? Colors.green.shade50 : Colors.grey.shade50,
+                                    color: isSelected
+                                        ? Colors.green.shade50
+                                        : Colors.grey.shade50,
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
-                                      color: isSelected ? Colors.green.shade200 : Colors.grey.shade200,
+                                      color: isSelected
+                                          ? Colors.green.shade200
+                                          : Colors.grey.shade200,
                                     ),
                                   ),
                                   child: Material(
                                     color: Colors.transparent,
                                     child: InkWell(
-                                      onTap: () => _showFoodDetails(scan.foodItem),
+                                      onTap: () =>
+                                          _showFoodDetails(scan.foodItem),
                                       borderRadius: BorderRadius.circular(12),
                                       child: Padding(
                                         padding: const EdgeInsets.all(12),
@@ -445,24 +513,30 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               width: 60,
                                               height: 60,
                                               decoration: BoxDecoration(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 color: Colors.grey.shade200,
                                               ),
                                               child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(8),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
                                                 child: scan.imagePath != null
                                                     ? Image.file(
                                                         File(scan.imagePath!),
                                                         fit: BoxFit.cover,
-                                                        errorBuilder: (context, error, stackTrace) {
+                                                        errorBuilder: (context,
+                                                            error, stackTrace) {
                                                           return Icon(
-                                                            Icons.image_not_supported,
-                                                            color: Colors.grey[400],
+                                                            Icons
+                                                                .image_not_supported,
+                                                            color: Colors
+                                                                .grey[400],
                                                           );
                                                         },
                                                       )
                                                     : Icon(
-                                                        Icons.image_not_supported,
+                                                        Icons
+                                                            .image_not_supported,
                                                         color: Colors.grey[400],
                                                       ),
                                               ),
@@ -470,18 +544,20 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             const SizedBox(width: 16),
                                             Expanded(
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     scan.foodItem,
                                                     style: const TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                     ),
                                                   ),
                                                   const SizedBox(height: 4),
                                                   Text(
-                                                    'Scanned on: ${scan.timestamp.year}-${scan.timestamp.month.toString().padLeft(2, '0')}-${scan.timestamp.day.toString().padLeft(2, '0')} ${scan.timestamp.hour.toString().padLeft(2, '0')}:${scan.timestamp.minute.toString().padLeft(2, '0')}:${scan.timestamp.second.toString().padLeft(2, '0')}.${scan.timestamp.millisecond.toString().padLeft(3, '0')}',
+                                                    'Scanned on: ${scan.timestamp.year}-${scan.timestamp.month.toString().padLeft(2, '0')}-${scan.timestamp.day.toString().padLeft(2, '0')} ${scan.timestamp.hour.toString().padLeft(2, '0')}:${scan.timestamp.minute.toString().padLeft(2, '0')}',
                                                     style: TextStyle(
                                                       fontSize: 14,
                                                       color: Colors.grey[600],
@@ -491,29 +567,49 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               ),
                                             ),
                                             const SizedBox(width: 8),
+                                            // Add delete button
+                                            IconButton(
+                                              icon: Icon(
+                                                Icons.delete_outline,
+                                                color: Colors.red[300],
+                                                size: 22,
+                                              ),
+                                              onPressed: () =>
+                                                  _deleteRecentScan(index),
+                                              tooltip: 'Delete item',
+                                            ),
                                             Checkbox(
                                               value: isSelected,
                                               onChanged: (bool? value) {
                                                 setState(() {
                                                   if (value == true) {
                                                     // Remove any other scan of the same food item
-                                                    _selectedItems.removeWhere((item) => 
-                                                      item.toLowerCase() == scan.foodItem.toLowerCase()
-                                                    );
-                                                    _selectedItems.add(scan.foodItem);
+                                                    _selectedItems.removeWhere(
+                                                        (item) =>
+                                                            item.toLowerCase() ==
+                                                            scan.foodItem
+                                                                .toLowerCase());
+                                                    _selectedItems
+                                                        .add(scan.foodItem);
                                                     // Animate the sheet to 0.8 of the screen height when an item is selected
                                                     _dragController.animateTo(
                                                       0.8,
-                                                      duration: const Duration(milliseconds: 300),
+                                                      duration: const Duration(
+                                                          milliseconds: 300),
                                                       curve: Curves.easeInOut,
                                                     );
                                                   } else {
-                                                    _selectedItems.remove(scan.foodItem);
+                                                    _selectedItems
+                                                        .remove(scan.foodItem);
                                                     // If no items are selected, animate back to initial position
-                                                    if (_selectedItems.isEmpty) {
+                                                    if (_selectedItems
+                                                        .isEmpty) {
                                                       _dragController.animateTo(
                                                         0.4,
-                                                        duration: const Duration(milliseconds: 300),
+                                                        duration:
+                                                            const Duration(
+                                                                milliseconds:
+                                                                    300),
                                                         curve: Curves.easeInOut,
                                                       );
                                                     }
@@ -551,13 +647,34 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   // === Dialog Building Methods ===
   Widget _buildFoodDetailsDialog(String foodItem, dynamic foodInfo) {
     // Find the corresponding scan for this food item to get the image
-    final scan = _recentScans.firstWhere(
-      (scan) => scan.foodItem == foodItem,
-      orElse: () => RecentScan(
+    // Use null-safe approach to find the relevant scan
+    RecentScan? matchingScan;
+    try {
+      if (_recentScans.isNotEmpty) {
+        matchingScan = _recentScans.firstWhere(
+          (scan) => scan.foodItem == foodItem,
+          orElse: () => RecentScan(
+            foodItem: foodItem,
+            timestamp: DateTime.now(),
+          ),
+        );
+      } else {
+        // If _recentScans is empty, create a default RecentScan
+        matchingScan = RecentScan(
+          foodItem: foodItem,
+          timestamp: DateTime.now(),
+        );
+      }
+    } catch (e) {
+      // Fallback in case of any error
+      print("Error finding matching scan: $e");
+      matchingScan = RecentScan(
         foodItem: foodItem,
         timestamp: DateTime.now(),
-      ),
-    );
+      );
+    }
+
+    final scan = matchingScan;
 
     return FutureBuilder<FoodCarbonData>(
       future: _foodCarbonService.getFoodCarbonData(foodItem),
@@ -602,7 +719,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
         final carbonData = snapshot.data!;
 
         return Dialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           child: Container(
             constraints: BoxConstraints(
               maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -650,7 +768,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       ? Image.file(
                                           File(scan.imagePath!),
                                           fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) {
+                                          errorBuilder:
+                                              (context, error, stackTrace) {
                                             return Container(
                                               color: Colors.grey[200],
                                               child: Icon(
@@ -1067,30 +1186,38 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: color.withOpacity(0.05),
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             // Description container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     'About this Recipe',
                                                     style: TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       color: Colors.grey[800],
                                                     ),
                                                   ),
@@ -1107,13 +1234,18 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               ),
                                             ),
 
-                                            if (suggestion.location != null) ...[
+                                            if (suggestion.location !=
+                                                null) ...[
                                               Container(
-                                                padding: const EdgeInsets.all(12),
+                                                padding:
+                                                    const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: Colors.grey.shade200),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color:
+                                                          Colors.grey.shade200),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -1124,22 +1256,33 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
                                                           const Text(
                                                             'Where to go:',
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.w500,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
                                                               fontSize: 12,
-                                                              color: Colors.grey,
+                                                              color:
+                                                                  Colors.grey,
                                                             ),
                                                           ),
-                                                          const SizedBox(height: 4),
+                                                          const SizedBox(
+                                                              height: 4),
                                                           Text(
-                                                            suggestion.location!,
-                                                            style: const TextStyle(
-                                                              fontWeight: FontWeight.w500,
-                                                              color: Colors.black87,
+                                                            suggestion
+                                                                .location!,
+                                                            style:
+                                                                const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: Colors
+                                                                  .black87,
                                                             ),
                                                           ),
                                                         ],
@@ -1163,8 +1306,11 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               padding: const EdgeInsets.all(12),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(8),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Row(
                                                 children: [
@@ -1198,22 +1344,29 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   bottom: 12,
                                                 ),
                                                 child: Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Container(
                                                       width: 24,
                                                       height: 24,
-                                                      margin: const EdgeInsets.only(right: 8),
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                              right: 8),
                                                       decoration: BoxDecoration(
-                                                        color: color.withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        color: color
+                                                            .withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '${entry.key + 1}',
                                                           style: TextStyle(
                                                             color: color,
-                                                            fontWeight: FontWeight.bold,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                             fontSize: 12,
                                                           ),
                                                         ),
@@ -1240,29 +1393,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         child: ElevatedButton.icon(
                                           onPressed: () {
                                             Navigator.of(context).pop();
-                                            if (widget.onAddWasteSuggestionTask != null) {
-                                              widget.onAddWasteSuggestionTask!(suggestion);
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                            if (widget
+                                                    .onAddWasteSuggestionTask !=
+                                                null) {
+                                              widget.onAddWasteSuggestionTask!(
+                                                  suggestion);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  content: Text(
+                                                      'Added "${suggestion.suggestion}" to tasks'),
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
                                               // Navigate back to homepage
-                                              Navigator.of(context).popUntil((route) => route.isFirst);
+                                              Navigator.of(context).popUntil(
+                                                  (route) => route.isFirst);
                                             }
                                           },
                                           icon: const Icon(Icons.add_task),
                                           label: const Text('Add to Tasks'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            backgroundColor:
+                                                const Color(0xFF4A5F4A),
                                             foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 24,
                                               vertical: 10,
                                             ),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(30),
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
                                             ),
                                           ),
                                         ),
@@ -1394,7 +1555,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                               ...snapshot.data!.map((recipe) {
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -1403,12 +1565,16 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         // Take only first two emojis
-                                        ...recipe.imageEmoji.split(' ').take(2).map(
-                                          (emoji) => Text(
-                                            emoji,
-                                            style: const TextStyle(fontSize: 24),
-                                          ),
-                                        ),
+                                        ...recipe.imageEmoji
+                                            .split(' ')
+                                            .take(2)
+                                            .map(
+                                              (emoji) => Text(
+                                                emoji,
+                                                style: const TextStyle(
+                                                    fontSize: 24),
+                                              ),
+                                            ),
                                       ],
                                     ),
                                     title: Text(
@@ -1420,11 +1586,13 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                     ),
                                     subtitle: Row(
                                       children: [
-                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                                        Icon(Icons.timer_outlined,
+                                            size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
                                           recipe.prepTime,
-                                          style: TextStyle(color: Colors.grey[600]),
+                                          style: TextStyle(
+                                              color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -1434,30 +1602,38 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[50],
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             // Description container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     'About this Recipe',
                                                     style: TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       color: Colors.grey[800],
                                                     ),
                                                   ),
@@ -1477,14 +1653,20 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             // Info chips container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
                                                 children: [
                                                   Expanded(
                                                     child: _buildInfoChip(
@@ -1495,7 +1677,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   const SizedBox(width: 12),
                                                   Expanded(
                                                     child: _buildInfoChip(
-                                                      Icons.local_fire_department,
+                                                      Icons
+                                                          .local_fire_department,
                                                       recipe.cookTime,
                                                     ),
                                                   ),
@@ -1512,49 +1695,79 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
                                             // Collapsible Ingredients Section
                                             Container(
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Theme(
-                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                data: Theme.of(context)
+                                                    .copyWith(
+                                                        dividerColor:
+                                                            Colors.transparent),
                                                 child: ExpansionTile(
                                                   title: const Text(
                                                     'Ingredients',
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       fontSize: 16,
                                                     ),
                                                   ),
-                                                  leading: const Icon(Icons.shopping_basket),
-                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  leading: const Icon(
+                                                      Icons.shopping_basket),
+                                                  childrenPadding:
+                                                      const EdgeInsets.all(16),
                                                   children: [
                                                     ListView.builder(
                                                       shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: recipe.ingredients.length,
-                                                      itemBuilder: (context, index) {
+                                                      physics:
+                                                          const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe
+                                                          .ingredients.length,
+                                                      itemBuilder:
+                                                          (context, index) {
                                                         return Padding(
-                                                          padding: const EdgeInsets.only(bottom: 8),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  bottom: 8),
                                                           child: Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
                                                               Container(
                                                                 width: 6,
                                                                 height: 6,
-                                                                margin: const EdgeInsets.only(top: 8, right: 12),
-                                                                decoration: BoxDecoration(
-                                                                  color: Theme.of(context).primaryColor,
-                                                                  shape: BoxShape.circle,
+                                                                margin:
+                                                                    const EdgeInsets
+                                                                        .only(
+                                                                        top: 8,
+                                                                        right:
+                                                                            12),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .primaryColor,
+                                                                  shape: BoxShape
+                                                                      .circle,
                                                                 ),
                                                               ),
                                                               Expanded(
                                                                 child: Text(
-                                                                  recipe.ingredients[index],
-                                                                  style: const TextStyle(
-                                                                    fontSize: 15,
+                                                                  recipe.ingredients[
+                                                                      index],
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        15,
                                                                     height: 1.4,
                                                                   ),
                                                                 ),
@@ -1571,59 +1784,98 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
                                             // Collapsible Instructions Section
                                             Container(
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Theme(
-                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                data: Theme.of(context)
+                                                    .copyWith(
+                                                        dividerColor:
+                                                            Colors.transparent),
                                                 child: ExpansionTile(
                                                   title: const Text(
                                                     'Instructions',
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       fontSize: 16,
                                                     ),
                                                   ),
-                                                  leading: const Icon(Icons.format_list_numbered),
-                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  leading: const Icon(Icons
+                                                      .format_list_numbered),
+                                                  childrenPadding:
+                                                      const EdgeInsets.all(16),
                                                   children: [
                                                     ListView.builder(
                                                       shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: recipe.steps.length,
-                                                      itemBuilder: (context, index) {
+                                                      physics:
+                                                          const NeverScrollableScrollPhysics(),
+                                                      itemCount:
+                                                          recipe.steps.length,
+                                                      itemBuilder:
+                                                          (context, index) {
                                                         return Padding(
-                                                          padding: const EdgeInsets.only(bottom: 16),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  bottom: 16),
                                                           child: Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
                                                               Container(
                                                                 width: 24,
                                                                 height: 24,
-                                                                margin: const EdgeInsets.only(right: 12),
-                                                                decoration: BoxDecoration(
-                                                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                                                  borderRadius: BorderRadius.circular(12),
+                                                                margin:
+                                                                    const EdgeInsets
+                                                                        .only(
+                                                                        right:
+                                                                            12),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .primaryColor
+                                                                      .withOpacity(
+                                                                          0.1),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              12),
                                                                 ),
                                                                 child: Center(
                                                                   child: Text(
                                                                     '${index + 1}',
-                                                                    style: TextStyle(
-                                                                      color: Theme.of(context).primaryColor,
-                                                                      fontWeight: FontWeight.bold,
-                                                                      fontSize: 12,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Theme.of(
+                                                                              context)
+                                                                          .primaryColor,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      fontSize:
+                                                                          12,
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
                                                               Expanded(
                                                                 child: Text(
-                                                                  recipe.steps[index],
-                                                                  style: const TextStyle(
-                                                                    fontSize: 15,
+                                                                  recipe.steps[
+                                                                      index],
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        15,
                                                                     height: 1.4,
                                                                   ),
                                                                 ),
@@ -1643,29 +1895,43 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               child: ElevatedButton.icon(
                                                 onPressed: () {
                                                   Navigator.of(context).pop();
-                                                  if (widget.onAddRecipeTask != null) {
-                                                    widget.onAddRecipeTask!(recipe);
-                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                  if (widget.onAddRecipeTask !=
+                                                      null) {
+                                                    widget.onAddRecipeTask!(
+                                                        recipe);
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
                                                       SnackBar(
-                                                        content: Text('Added "${recipe.name}" to tasks'),
-                                                        backgroundColor: Colors.green,
+                                                        content: Text(
+                                                            'Added "${recipe.name}" to tasks'),
+                                                        backgroundColor:
+                                                            Colors.green,
                                                       ),
                                                     );
                                                     // Navigate back to homepage
-                                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                                    Navigator.of(context)
+                                                        .popUntil((route) =>
+                                                            route.isFirst);
                                                   }
                                                 },
-                                                icon: const Icon(Icons.add_task),
-                                                label: const Text('Add to Tasks'),
+                                                icon:
+                                                    const Icon(Icons.add_task),
+                                                label:
+                                                    const Text('Add to Tasks'),
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  backgroundColor:
+                                                      const Color(0xFF3E6B3D),
                                                   foregroundColor: Colors.white,
-                                                  padding: const EdgeInsets.symmetric(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
                                                     horizontal: 24,
                                                     vertical: 12,
                                                   ),
                                                   shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(30),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
                                                   ),
                                                 ),
                                               ),
@@ -1726,29 +1992,40 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
   }
 
   // === Data Management Methods ===
-  Future<void> _saveRecentScan(String foodItem) async {
-    final newScan = RecentScan(
-      foodItem: foodItem,
-      timestamp: DateTime.now(),
-      imagePath: _imageFile?.path,
-    );
+  void _clearRecentScans() async {
+    try {
+      // Clear Firestore data
+      await _firestoreService.clearScans();
 
-    _recentScans.insert(0, newScan);
-    if (_recentScans.length > 20) {
-      _recentScans.removeLast();
+      // Clear the list in UI
+      setState(() {
+        _recentScans.clear();
+      });
+
+      print("Successfully cleared recent scans");
+    } catch (e) {
+      print("Error clearing recent scans: $e");
+      // Try to reload scans if clearing failed
+      _loadRecentScans();
     }
-    await _prefs.setStringList(
-      'recent_scans',
-      _recentScans.map((scan) => jsonEncode(scan.toJson())).toList(),
-    );
-    setState(() {});
   }
 
-  void _clearRecentScans() {
-    setState(() {
-      _recentScans.clear();
-      _prefs.remove('recent_scans');
-    });
+  void _deleteRecentScan(int index) async {
+    try {
+      final scan = _recentScans[index];
+
+      // Delete from Firestore if the scan has an ID
+      if (scan.id != null) {
+        await _firestoreService.deleteScan(scan.id!);
+      }
+
+      // Update the UI
+      setState(() {
+        _recentScans.removeAt(index);
+      });
+    } catch (e) {
+      print("Error deleting recent scan: $e");
+    }
   }
 
   // === Action Button Methods ===
@@ -1787,7 +2064,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                 Expanded(
                   child: ElevatedButton.icon(
                     onPressed: () {
-                      _showBatchRecipeSuggestionsDialog(_selectedItems.toList());
+                      _showBatchRecipeSuggestionsDialog(
+                          _selectedItems.toList());
                     },
                     icon: const Icon(Icons.restaurant_menu, size: 20),
                     label: const Text('Suggest\nRecipes'),
@@ -1846,7 +2124,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       builder: (BuildContext context) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return FutureBuilder<List<Recipe>>(
-            future: recipeService.getRecipeSuggestionsForMultipleItems(foodItems),
+            future:
+                recipeService.getRecipeSuggestionsForMultipleItems(foodItems),
             builder: (context, snapshot) {
               return Dialog(
                 shape: RoundedRectangleBorder(
@@ -1945,7 +2224,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                               ...snapshot.data!.map((recipe) {
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                   ),
@@ -1954,12 +2234,16 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         // Take only first two emojis
-                                        ...recipe.imageEmoji.split(' ').take(2).map(
-                                          (emoji) => Text(
-                                            emoji,
-                                            style: const TextStyle(fontSize: 24),
-                                          ),
-                                        ),
+                                        ...recipe.imageEmoji
+                                            .split(' ')
+                                            .take(2)
+                                            .map(
+                                              (emoji) => Text(
+                                                emoji,
+                                                style: const TextStyle(
+                                                    fontSize: 24),
+                                              ),
+                                            ),
                                       ],
                                     ),
                                     title: Text(
@@ -1971,11 +2255,13 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                     ),
                                     subtitle: Row(
                                       children: [
-                                        Icon(Icons.timer_outlined, size: 16, color: Colors.grey[600]),
+                                        Icon(Icons.timer_outlined,
+                                            size: 16, color: Colors.grey[600]),
                                         const SizedBox(width: 4),
                                         Text(
                                           recipe.prepTime,
-                                          style: TextStyle(color: Colors.grey[600]),
+                                          style: TextStyle(
+                                              color: Colors.grey[600]),
                                         ),
                                       ],
                                     ),
@@ -1985,30 +2271,38 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: Colors.grey[50],
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             // Description container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     'About this Recipe',
                                                     style: TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       color: Colors.grey[800],
                                                     ),
                                                   ),
@@ -2028,14 +2322,20 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                             // Info chips container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceEvenly,
                                                 children: [
                                                   Expanded(
                                                     child: _buildInfoChip(
@@ -2046,7 +2346,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   const SizedBox(width: 12),
                                                   Expanded(
                                                     child: _buildInfoChip(
-                                                      Icons.local_fire_department,
+                                                      Icons
+                                                          .local_fire_department,
                                                       recipe.cookTime,
                                                     ),
                                                   ),
@@ -2063,49 +2364,79 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
                                             // Collapsible Ingredients Section
                                             Container(
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Theme(
-                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                data: Theme.of(context)
+                                                    .copyWith(
+                                                        dividerColor:
+                                                            Colors.transparent),
                                                 child: ExpansionTile(
                                                   title: const Text(
                                                     'Ingredients',
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       fontSize: 16,
                                                     ),
                                                   ),
-                                                  leading: const Icon(Icons.shopping_basket),
-                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  leading: const Icon(
+                                                      Icons.shopping_basket),
+                                                  childrenPadding:
+                                                      const EdgeInsets.all(16),
                                                   children: [
                                                     ListView.builder(
                                                       shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: recipe.ingredients.length,
-                                                      itemBuilder: (context, index) {
+                                                      physics:
+                                                          const NeverScrollableScrollPhysics(),
+                                                      itemCount: recipe
+                                                          .ingredients.length,
+                                                      itemBuilder:
+                                                          (context, index) {
                                                         return Padding(
-                                                          padding: const EdgeInsets.only(bottom: 8),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  bottom: 8),
                                                           child: Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
                                                               Container(
                                                                 width: 6,
                                                                 height: 6,
-                                                                margin: const EdgeInsets.only(top: 8, right: 12),
-                                                                decoration: BoxDecoration(
-                                                                  color: Theme.of(context).primaryColor,
-                                                                  shape: BoxShape.circle,
+                                                                margin:
+                                                                    const EdgeInsets
+                                                                        .only(
+                                                                        top: 8,
+                                                                        right:
+                                                                            12),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .primaryColor,
+                                                                  shape: BoxShape
+                                                                      .circle,
                                                                 ),
                                                               ),
                                                               Expanded(
                                                                 child: Text(
-                                                                  recipe.ingredients[index],
-                                                                  style: const TextStyle(
-                                                                    fontSize: 15,
+                                                                  recipe.ingredients[
+                                                                      index],
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        15,
                                                                     height: 1.4,
                                                                   ),
                                                                 ),
@@ -2122,59 +2453,98 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
                                             // Collapsible Instructions Section
                                             Container(
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Theme(
-                                                data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+                                                data: Theme.of(context)
+                                                    .copyWith(
+                                                        dividerColor:
+                                                            Colors.transparent),
                                                 child: ExpansionTile(
                                                   title: const Text(
                                                     'Instructions',
                                                     style: TextStyle(
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       fontSize: 16,
                                                     ),
                                                   ),
-                                                  leading: const Icon(Icons.format_list_numbered),
-                                                  childrenPadding: const EdgeInsets.all(16),
+                                                  leading: const Icon(Icons
+                                                      .format_list_numbered),
+                                                  childrenPadding:
+                                                      const EdgeInsets.all(16),
                                                   children: [
                                                     ListView.builder(
                                                       shrinkWrap: true,
-                                                      physics: const NeverScrollableScrollPhysics(),
-                                                      itemCount: recipe.steps.length,
-                                                      itemBuilder: (context, index) {
+                                                      physics:
+                                                          const NeverScrollableScrollPhysics(),
+                                                      itemCount:
+                                                          recipe.steps.length,
+                                                      itemBuilder:
+                                                          (context, index) {
                                                         return Padding(
-                                                          padding: const EdgeInsets.only(bottom: 16),
+                                                          padding:
+                                                              const EdgeInsets
+                                                                  .only(
+                                                                  bottom: 16),
                                                           child: Row(
-                                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                                            crossAxisAlignment:
+                                                                CrossAxisAlignment
+                                                                    .start,
                                                             children: [
                                                               Container(
                                                                 width: 24,
                                                                 height: 24,
-                                                                margin: const EdgeInsets.only(right: 12),
-                                                                decoration: BoxDecoration(
-                                                                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                                                                  borderRadius: BorderRadius.circular(12),
+                                                                margin:
+                                                                    const EdgeInsets
+                                                                        .only(
+                                                                        right:
+                                                                            12),
+                                                                decoration:
+                                                                    BoxDecoration(
+                                                                  color: Theme.of(
+                                                                          context)
+                                                                      .primaryColor
+                                                                      .withOpacity(
+                                                                          0.1),
+                                                                  borderRadius:
+                                                                      BorderRadius
+                                                                          .circular(
+                                                                              12),
                                                                 ),
                                                                 child: Center(
                                                                   child: Text(
                                                                     '${index + 1}',
-                                                                    style: TextStyle(
-                                                                      color: Theme.of(context).primaryColor,
-                                                                      fontWeight: FontWeight.bold,
-                                                                      fontSize: 12,
+                                                                    style:
+                                                                        TextStyle(
+                                                                      color: Theme.of(
+                                                                              context)
+                                                                          .primaryColor,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .bold,
+                                                                      fontSize:
+                                                                          12,
                                                                     ),
                                                                   ),
                                                                 ),
                                                               ),
                                                               Expanded(
                                                                 child: Text(
-                                                                  recipe.steps[index],
-                                                                  style: const TextStyle(
-                                                                    fontSize: 15,
+                                                                  recipe.steps[
+                                                                      index],
+                                                                  style:
+                                                                      const TextStyle(
+                                                                    fontSize:
+                                                                        15,
                                                                     height: 1.4,
                                                                   ),
                                                                 ),
@@ -2194,29 +2564,43 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               child: ElevatedButton.icon(
                                                 onPressed: () {
                                                   Navigator.of(context).pop();
-                                                  if (widget.onAddRecipeTask != null) {
-                                                    widget.onAddRecipeTask!(recipe);
-                                                    ScaffoldMessenger.of(context).showSnackBar(
+                                                  if (widget.onAddRecipeTask !=
+                                                      null) {
+                                                    widget.onAddRecipeTask!(
+                                                        recipe);
+                                                    ScaffoldMessenger.of(
+                                                            context)
+                                                        .showSnackBar(
                                                       SnackBar(
-                                                        content: Text('Added "${recipe.name}" to tasks'),
-                                                        backgroundColor: Colors.green,
+                                                        content: Text(
+                                                            'Added "${recipe.name}" to tasks'),
+                                                        backgroundColor:
+                                                            Colors.green,
                                                       ),
                                                     );
                                                     // Navigate back to homepage
-                                                    Navigator.of(context).popUntil((route) => route.isFirst);
+                                                    Navigator.of(context)
+                                                        .popUntil((route) =>
+                                                            route.isFirst);
                                                   }
                                                 },
-                                                icon: const Icon(Icons.add_task),
-                                                label: const Text('Add to Tasks'),
+                                                icon:
+                                                    const Icon(Icons.add_task),
+                                                label:
+                                                    const Text('Add to Tasks'),
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF3E6B3D),
+                                                  backgroundColor:
+                                                      const Color(0xFF3E6B3D),
                                                   foregroundColor: Colors.white,
-                                                  padding: const EdgeInsets.symmetric(
+                                                  padding: const EdgeInsets
+                                                      .symmetric(
                                                     horizontal: 24,
                                                     vertical: 12,
                                                   ),
                                                   shape: RoundedRectangleBorder(
-                                                    borderRadius: BorderRadius.circular(30),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            30),
                                                   ),
                                                 ),
                                               ),
@@ -2252,7 +2636,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
       builder: (BuildContext context) => StatefulBuilder(
         builder: (BuildContext context, StateSetter setState) {
           return FutureBuilder<List<WasteDisposalSuggestion>>(
-            future: wasteService.getSustainableSuggestionsForMultipleItems(foodItems),
+            future: wasteService
+                .getSustainableSuggestionsForMultipleItems(foodItems),
             builder: (context, snapshot) {
               return Dialog(
                 shape: RoundedRectangleBorder(
@@ -2377,7 +2762,8 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
 
                                 return Card(
                                   elevation: 2,
-                                  margin: const EdgeInsets.symmetric(vertical: 8),
+                                  margin:
+                                      const EdgeInsets.symmetric(vertical: 8),
                                   shape: RoundedRectangleBorder(
                                     borderRadius: BorderRadius.circular(12),
                                     side: BorderSide(
@@ -2424,30 +2810,38 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         width: double.infinity,
                                         decoration: BoxDecoration(
                                           color: color.withOpacity(0.05),
-                                          borderRadius: const BorderRadius.vertical(
+                                          borderRadius:
+                                              const BorderRadius.vertical(
                                             bottom: Radius.circular(12),
                                           ),
                                         ),
                                         child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
                                           children: [
                                             // Description container
                                             Container(
                                               padding: const EdgeInsets.all(16),
-                                              margin: const EdgeInsets.only(bottom: 16),
+                                              margin: const EdgeInsets.only(
+                                                  bottom: 16),
                                               decoration: BoxDecoration(
                                                 color: Colors.white,
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(color: Colors.grey.shade200),
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                    color:
+                                                        Colors.grey.shade200),
                                               ),
                                               child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
                                                     'About this Recipe',
                                                     style: TextStyle(
                                                       fontSize: 16,
-                                                      fontWeight: FontWeight.w600,
+                                                      fontWeight:
+                                                          FontWeight.w600,
                                                       color: Colors.grey[800],
                                                     ),
                                                   ),
@@ -2464,13 +2858,18 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                               ),
                                             ),
 
-                                            if (suggestion.location != null) ...[
+                                            if (suggestion.location !=
+                                                null) ...[
                                               Container(
-                                                padding: const EdgeInsets.all(12),
+                                                padding:
+                                                    const EdgeInsets.all(12),
                                                 decoration: BoxDecoration(
                                                   color: Colors.white,
-                                                  borderRadius: BorderRadius.circular(8),
-                                                  border: Border.all(color: Colors.grey.shade200),
+                                                  borderRadius:
+                                                      BorderRadius.circular(8),
+                                                  border: Border.all(
+                                                      color:
+                                                          Colors.grey.shade200),
                                                 ),
                                                 child: Row(
                                                   children: [
@@ -2481,22 +2880,33 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     const SizedBox(width: 8),
                                                     Expanded(
                                                       child: Column(
-                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        crossAxisAlignment:
+                                                            CrossAxisAlignment
+                                                                .start,
                                                         children: [
                                                           const Text(
                                                             'Where to go:',
                                                             style: TextStyle(
-                                                              fontWeight: FontWeight.w500,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
                                                               fontSize: 12,
-                                                              color: Colors.grey,
+                                                              color:
+                                                                  Colors.grey,
                                                             ),
                                                           ),
-                                                          const SizedBox(height: 4),
+                                                          const SizedBox(
+                                                              height: 4),
                                                           Text(
-                                                            suggestion.location!,
-                                                            style: const TextStyle(
-                                                              fontWeight: FontWeight.w500,
-                                                              color: Colors.black87,
+                                                            suggestion
+                                                                .location!,
+                                                            style:
+                                                                const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w500,
+                                                              color: Colors
+                                                                  .black87,
                                                             ),
                                                           ),
                                                         ],
@@ -2525,22 +2935,29 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                   bottom: 12,
                                                 ),
                                                 child: Row(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  crossAxisAlignment:
+                                                      CrossAxisAlignment.start,
                                                   children: [
                                                     Container(
                                                       width: 24,
                                                       height: 24,
-                                                      margin: const EdgeInsets.only(right: 8),
+                                                      margin:
+                                                          const EdgeInsets.only(
+                                                              right: 8),
                                                       decoration: BoxDecoration(
-                                                        color: color.withOpacity(0.1),
-                                                        borderRadius: BorderRadius.circular(12),
+                                                        color: color
+                                                            .withOpacity(0.1),
+                                                        borderRadius:
+                                                            BorderRadius
+                                                                .circular(12),
                                                       ),
                                                       child: Center(
                                                         child: Text(
                                                           '${entry.key + 1}',
                                                           style: TextStyle(
                                                             color: color,
-                                                            fontWeight: FontWeight.bold,
+                                                            fontWeight:
+                                                                FontWeight.bold,
                                                             fontSize: 12,
                                                           ),
                                                         ),
@@ -2567,29 +2984,37 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                         child: ElevatedButton.icon(
                                           onPressed: () {
                                             Navigator.of(context).pop();
-                                            if (widget.onAddWasteSuggestionTask != null) {
-                                              widget.onAddWasteSuggestionTask!(suggestion);
-                                              ScaffoldMessenger.of(context).showSnackBar(
+                                            if (widget
+                                                    .onAddWasteSuggestionTask !=
+                                                null) {
+                                              widget.onAddWasteSuggestionTask!(
+                                                  suggestion);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
                                                 SnackBar(
-                                                  content: Text('Added "${suggestion.suggestion}" to tasks'),
+                                                  content: Text(
+                                                      'Added "${suggestion.suggestion}" to tasks'),
                                                   backgroundColor: Colors.green,
                                                 ),
                                               );
                                               // Navigate back to homepage
-                                              Navigator.of(context).popUntil((route) => route.isFirst);
+                                              Navigator.of(context).popUntil(
+                                                  (route) => route.isFirst);
                                             }
                                           },
                                           icon: const Icon(Icons.add_task),
                                           label: const Text('Add to Tasks'),
                                           style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF4A5F4A),
+                                            backgroundColor:
+                                                const Color(0xFF4A5F4A),
                                             foregroundColor: Colors.white,
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 24,
                                               vertical: 10,
                                             ),
                                             shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(30),
+                                              borderRadius:
+                                                  BorderRadius.circular(30),
                                             ),
                                           ),
                                         ),

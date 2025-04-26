@@ -131,7 +131,6 @@ packages:
     description:
       name: flutter_lints
       sha256: a25a15ebbdfc33ab1cd26c63a6ee519df92338a9c10f122adda92938253bef04
-
       url: "https://pub.dev"
     source: hosted
     version: "2.0.3"
@@ -148,7 +147,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-
   flutter_web_plugins:
     dependency: transitive
     description: flutter
@@ -178,7 +176,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
-
   image_picker:
     dependency: "direct main"
     description:
@@ -520,7 +517,6 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.1.1"
-
   xdg_directories:
     dependency: transitive
     description:
@@ -532,4 +528,3 @@ packages:
 sdks:
   dart: ">=3.7.0 <4.0.0"
   flutter: ">=3.27.0"
-

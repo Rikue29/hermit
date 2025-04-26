@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'widgets/share_form_dialog.dart';
-import 'widgets/my_shares_tab.dart';
-import 'services/shared_items_service.dart';
+import '../widgets/share_form_dialog.dart';
+import '../widgets/my_shares_tab.dart';
+import '../services/shared_items_service.dart';
+import 'Homepage.dart';
+import 'food_scanner_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CommunityPage extends StatefulWidget {
   const CommunityPage({super.key});
@@ -63,6 +66,36 @@ class _CommunityPageState extends State<CommunityPage>
               controller: _tabController,
               children: [_buildFindNearbyTab(), const MySharesTab()],
             ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 2,
+        onTap: (index) {
+          if (index == 0) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const Homepage()),
+            );
+          } else if (index == 1) {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (context) => const FoodScannerScreen()),
+            );
+          } // index == 2 is Community, do nothing
+        },
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home),
+            label: 'Home',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.camera_alt),
+            label: 'Scan',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.groups),
+            label: 'Community',
           ),
         ],
       ),
@@ -176,6 +209,11 @@ class _CommunityPageState extends State<CommunityPage>
               if (result != null) {
                 try {
                   await _service.shareItem(result);
+                  // Increment shared items count
+                  final prefs = await SharedPreferences.getInstance();
+                  int currentCount = prefs.getInt('sharedItemsCount') ?? 0;
+                  await prefs.setInt('sharedItemsCount', currentCount + 1);
+                  
                   // Switch to My Shares tab
                   _tabController.animateTo(1);
                   // Show success message

@@ -5,6 +5,7 @@ import 'package:food_waste_reducer/services/recipe_service.dart';
 import 'package:food_waste_reducer/services/waste_management_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
+import 'package:food_waste_reducer/screens/communitypage.dart';
 
 enum TaskType { recipe, disposal }
 
@@ -99,6 +100,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   List<Task> _tasks = [];
   late SharedPreferences _prefs;
   final ImagePicker _picker = ImagePicker();
+  int _sharedItemsCount = 0;
 
   final List<Alert> _alerts = [
     Alert(
@@ -123,6 +125,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
   Future<void> _initializePrefs() async {
     _prefs = await SharedPreferences.getInstance();
     await _loadTasks();
+    _sharedItemsCount = _prefs.getInt('sharedItemsCount') ?? 0;
   }
 
   Future<void> _loadTasks() async {
@@ -139,6 +142,7 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
         .map((task) => jsonEncode(task.toJson()))
         .toList();
     await _prefs.setStringList('tasks', tasksJson);
+    await _prefs.setInt('sharedItemsCount', _sharedItemsCount);
   }
 
   @override
@@ -859,20 +863,20 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                             ],
                           ),
                           const SizedBox(height: 20),
-                          const Row(
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              _ImpactMetric(
+                              const _ImpactMetric(
                                 title: 'Money Saved',
                                 value: '\$24',
                               ),
-                               _ImpactMetric(
+                              const _ImpactMetric(
                                 title: 'Saved',
                                 value: '3.2 kg',
                               ),
                               _ImpactMetric(
-                                title: 'Shared Items',
-                                value: '5',
+                                title: 'Shared Foods',
+                                value: _sharedItemsCount.toString(),
                               ),
                             ],
                           ),
@@ -1219,6 +1223,14 @@ class _MyHomePageState extends State<Homepage> with TickerProviderStateMixin {
                   onAddRecipeTask: _addTaskFromRecipe,
                   onAddWasteSuggestionTask: _addTaskFromWasteSuggestion,
                 ),
+              ),
+            );
+          } else if (index == 2) {
+            // Community tab
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => CommunityPage(),
               ),
             );
           } else {

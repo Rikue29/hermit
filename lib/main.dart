@@ -1,29 +1,33 @@
 import 'package:flutter/material.dart';
-// Import the new screen
-import 'package:hermit/screens/food_scanner_screen.dart'; // Adjust path if needed
 
-void main() {
+import 'screens/Homepage.dart';
+import 'package:image_picker/image_picker.dart';
+import 'screens/food_scanner_screen.dart'; // Corrected path
+import 'services/env_service.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await EnvService.init();
   runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Updated title
-      title: 'Hermit Food Scanner',
+      title: 'Hermit',
+      debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        // Using a Material 3 theme
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.green,
-        ), // Example theme color
-        useMaterial3: true,
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.green),
+        scaffoldBackgroundColor: Colors.white,
+        appBarTheme: const AppBarTheme(
+          backgroundColor: Colors.white,
+          elevation: 0,
+        ),
       ),
-      // Set FoodScannerScreen as the home screen
-      home: const FoodScannerScreen(),
+      home: const Homepage(),
     );
   }
 }

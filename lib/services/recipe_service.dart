@@ -67,7 +67,7 @@ class RecipeService {
   Future<List<Recipe>> getRecipeSuggestions(String foodItem) async {
     try {
       final prompt = '''
-Generate 3 creative recipe suggestions for $foodItem. 
+Generate 3 creative malaysian recipe suggestions for $foodItem. 
 For each recipe, provide the following in JSON format:
 {
   "name": "Recipe name",
@@ -106,7 +106,7 @@ Return the response as a JSON array of 3 recipes.
     try {
       final itemsList = foodItems.join(', ');
       final prompt = '''
-Generate 3 creative recipe suggestions that combine some or all of these ingredients: $itemsList. 
+Generate 3 creative malaysian recipe suggestions that combine some or all of these ingredients: $itemsList. 
 Prioritize recipes that use multiple items from the list to reduce food waste.
 For each recipe, provide the following in JSON format:
 {

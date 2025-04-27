@@ -119,12 +119,13 @@ A: Fork the repo, make your changes, and open a pull request!
 ---
 
 ## 🙋 Contact & Support
-- For issues, open a [GitHub issue](https://github.com/your-repo/issues).
-- For feature requests or questions, contact the maintainer at [your-email@example.com].
+- For issues, open a [GitHub issue](https://github.com/Rikue29/hermit/issues).
+- For feature requests or questions, contact the maintainer at [ariqulwanfina@gmail.com].
 
 ---
 
 ## 🙌 Contributors
+- Ariq Ulwan
 - Adiba Alya
 - Hadi Ilhan
 - Nur Aisyah

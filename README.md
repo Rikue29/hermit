@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="assets\hermit_logo1-removebg-preview.png" alt="Hermit Logo" width="180"/>
+  <img src="assets\hermit_logo1.png" alt="Hermit Logo" width="180"/>
   
   <h1>Hermit: Food Waste Reducer</h1>
   <p><b>Reduce food waste. Save money. Help your community.</b></p>

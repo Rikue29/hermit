@@ -612,10 +612,9 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 
-  // === Dialog Building Methods ===
+  //  food details
   Widget _buildFoodDetailsDialog(String foodItem, dynamic foodInfo) {
-    // Find the corresponding scan for this food item to get the image
-    // Use null-safe approach to find the relevant scan
+    // Find the  scan for this food item to get the image
     RecentScan? matchingScan;
     try {
       if (_recentScans.isNotEmpty) {
@@ -627,7 +626,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
           ),
         );
       } else {
-        // If _recentScans is empty, create a default RecentScan
         matchingScan = RecentScan(
           foodItem: foodItem,
           timestamp: DateTime.now(),
@@ -1959,7 +1957,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 
-  // === Data Management Methods ===
+  // Data Management for Scans
   void _clearRecentScans() async {
     try {
       await _firestoreService.clearScans();
@@ -1991,7 +1989,6 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     }
   }
 
-  // === Action Button Methods ===
   Widget _buildActionButtons() {
     if (_selectedItems.isEmpty) return const SizedBox.shrink();
 
@@ -2196,7 +2193,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                     leading: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        // Take only first two emojis
+                                        // Take only two emojis, avoid overflow
                                         ...recipe.imageEmoji
                                             .split(' ')
                                             .take(2)
@@ -2589,6 +2586,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
     );
   }
 
+  // waste management feature, gemini key call
   Future<void> _showBatchWasteManagementDialog(List<String> foodItems) async {
     final wasteService = WasteManagementService(
       apiKey: EnvService.geminiApiKey,

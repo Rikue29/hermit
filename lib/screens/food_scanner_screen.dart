@@ -1179,7 +1179,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'About this Recipe',
+                                                    'About',
                                                     style: TextStyle(
                                                       fontSize: 16,
                                                       fontWeight:
@@ -1595,7 +1595,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'About this Recipe',
+                                                    'About',
                                                     style: TextStyle(
                                                       fontSize: 16,
                                                       fontWeight:
@@ -2258,7 +2258,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'About this Recipe',
+                                                    'About',
                                                     style: TextStyle(
                                                       fontSize: 16,
                                                       fontWeight:
@@ -2798,7 +2798,7 @@ class _FoodScannerScreenState extends State<FoodScannerScreen> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Text(
-                                                    'About this Recipe',
+                                                    'About',
                                                     style: TextStyle(
                                                       fontSize: 16,
                                                       fontWeight:
